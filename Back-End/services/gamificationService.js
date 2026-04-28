@@ -41,12 +41,12 @@ class GamificationService {
   }
 
   static async refreshBadges(childId) {
-    const totalXp = await AttemptModel.sumXpByChild(childId);
-    await this.checkAndAwardBadge(childId, 'total_xp', totalXp);
-    const progressRes = await ProgressModel.findByChildAndLesson(childId, null);
-    const lessonsCompleted = await this.countCompletedLessons(childId);
-    await this.checkAndAwardBadge(childId, 'lessons_completed', lessonsCompleted);
-  }
+  const totalXp = await AttemptModel.sumXpByChild(childId);
+  await this.checkAndAwardBadge(childId, 'total_xp', totalXp);
+
+  const lessonsCompleted = await this.countCompletedLessons(childId);
+  await this.checkAndAwardBadge(childId, 'lessons_completed', lessonsCompleted);
+}
 
   static async countCompletedLessons(childId) {
     const pool = require('../db');
