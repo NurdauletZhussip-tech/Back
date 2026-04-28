@@ -3,13 +3,14 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchChildren, createChild } from '../store/childSlice';
 import { logout, loginChild } from '../store/authSlice';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 export default function ParentDashboard() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
   const { children } = useSelector((state) => state.child);
-  const { user, token } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.auth);
 
   const [newChildName, setNewChildName] = useState('');
   const [newChildPin, setNewChildPin] = useState('');
@@ -20,73 +21,97 @@ export default function ParentDashboard() {
   }, [dispatch]);
 
   const handleCreateChild = async () => {
-    if (!newChildName || !newChildPin) return alert('Введите имя и PIN');
+    if (!newChildName || !newChildPin) return alert("Введите имя и PIN");
+    
     try {
       await dispatch(createChild({ name: newChildName, pin: newChildPin })).unwrap();
+      alert("Ребёнок создан успешно!");
       setNewChildName('');
       setNewChildPin('');
     } catch (err) {
-      alert('Ошибка создания ребёнка');
+      alert("Ошибка создания ребёнка");
     }
   };
 
-  const handleLoginAsChild = async (childId) => {
-    const pin = prompt(`Введите PIN для ${children.find(c => c.id === childId)?.name || 'ребёнка'}:`);
+  const handleLoginAsChild = async (childId, name) => {
+    const pin = prompt(`Введите PIN для ${name}:`);
     if (!pin) return;
 
     setLoggingInChildId(childId);
     try {
-      const result = await dispatch(loginChild({ childId, pin })).unwrap();
-      
-      // Важно: сохраняем новый токен ребёнка
-      localStorage.setItem('token', result.token);
-      
-      // Переходим в дашборд ребёнка
+      await dispatch(loginChild({ childId, pin })).unwrap();
       navigate('/child/dashboard');
     } catch (err) {
-      alert('Неверный PIN или ошибка входа');
+      alert("Неверный PIN");
     } finally {
       setLoggingInChildId(null);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-indigo-800">Панель родителя</h1>
-            <p className="text-gray-600 mt-1">Добро пожаловать, {user?.name}</p>
-          </div>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      padding: '40px 20px',
+      fontFamily: 'Arial, sans-serif'
+    }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+          <h1 style={{ color: 'white', fontSize: '42px', fontWeight: 'bold' }}>
+            Панель Родителя
+          </h1>
           <button 
-            onClick={() => dispatch(logout())} 
-            className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl font-medium"
+            onClick={() => dispatch(logout())}
+            style={{
+              background: '#ef4444',
+              color: 'white',
+              padding: '12px 24px',
+              border: 'none',
+              borderRadius: '12px',
+              fontSize: '18px',
+              cursor: 'pointer'
+            }}
           >
             Выйти
           </button>
         </div>
 
-        {/* Создание ребёнка */}
-        <div className="bg-white rounded-3xl shadow-xl p-8 mb-8">
-          <h2 className="text-2xl font-semibold mb-6">➕ Создать нового ребёнка</h2>
-          <div className="flex gap-4 flex-wrap">
-            <input 
-              type="text" 
-              placeholder="Имя ребёнка" 
+        {/* Создать ребёнка */}
+        <div style={{
+          background: 'white',
+          borderRadius: '20px',
+          padding: '30px',
+          marginBottom: '40px',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+        }}>
+          <h2 style={{ fontSize: '28px', marginBottom: '20px' }}>Создать ребёнка</h2>
+          <div style={{ display: 'flex', gap: '15px' }}>
+            <input
+              type="text"
+              placeholder="Имя ребёнка"
               value={newChildName}
               onChange={(e) => setNewChildName(e.target.value)}
-              className="flex-1 px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-indigo-500"
+              style={{ flex: 1, padding: '15px', fontSize: '18px', borderRadius: '10px', border: '1px solid #ccc' }}
             />
-            <input 
-              type="text" 
-              placeholder="PIN (4 цифры)" 
+            <input
+              type="text"
+              placeholder="PIN"
               value={newChildPin}
               onChange={(e) => setNewChildPin(e.target.value)}
-              className="w-48 px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-indigo-500"
+              style={{ width: '180px', padding: '15px', fontSize: '18px', borderRadius: '10px', border: '1px solid #ccc' }}
             />
             <button 
               onClick={handleCreateChild}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-semibold"
+              style={{
+                background: '#304e50',
+                color: 'white',
+                padding: '15px 30px',
+                border: 'none',
+                borderRadius: '10px',
+                fontSize: '18px',
+                cursor: 'pointer'
+              }}
             >
               Создать
             </button>
@@ -94,31 +119,70 @@ export default function ParentDashboard() {
         </div>
 
         {/* Список детей */}
-        <div className="bg-white rounded-3xl shadow-xl p-8">
-          <h2 className="text-2xl font-semibold mb-6">👨‍👧 Мои дети</h2>
-          
+        <div style={{
+          background: 'white',
+          borderRadius: '20px',
+          padding: '30px',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+        }}>
+          <h2 style={{ fontSize: '28px', marginBottom: '25px' }}>Мои дети</h2>
+
           {children.length === 0 ? (
-            <p className="text-gray-500 text-center py-12">У вас пока нет детей. Создайте первого.</p>
+            <p style={{ textAlign: 'center', fontSize: '20px', color: '#666', padding: '60px 0' }}>
+              У вас пока нет детей
+            </p>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2">
-              {children.map((child) => (
-                <div key={child.id} className="border border-gray-200 rounded-3xl p-6 hover:shadow-md transition">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-800">{child.name}</h3>
-                      <p className="text-sm text-gray-500 mt-1">ID: {child.id.slice(0,8)}...</p>
-                    </div>
-                    <button
-                      onClick={() => handleLoginAsChild(child.id)}
-                      disabled={loggingInChildId === child.id}
-                      className="bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white px-6 py-3 rounded-2xl font-medium text-sm"
-                    >
-                      {loggingInChildId === child.id ? 'Вход...' : 'Войти как ребёнок'}
-                    </button>
-                  </div>
+            children.map(child => (
+              <div key={child.id} style={{
+                border: '1px solid #ddd',
+                borderRadius: '15px',
+                padding: '25px',
+                marginBottom: '20px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: '#f8fafc'
+              }}>
+                <div>
+                  <h3 style={{ fontSize: '26px', margin: '0 0 8px 0' }}>{child.name}</h3>
+                  <p style={{ color: '#666' }}>ID: {child.id.slice(0,8)}...</p>
                 </div>
-              ))}
-            </div>
+
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  {/* Кнопка Прогресс */}
+                  <Link
+                    to={`/parent/child/${child.id}/progress`}
+                    style={{
+                      background: '#10b981',
+                      color: 'white',
+                      padding: '12px 20px',
+                      borderRadius: '10px',
+                      textDecoration: 'none',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    Прогресс
+                  </Link>
+
+                  {/* Кнопка Войти как ребёнок */}
+                  <button
+                    onClick={() => handleLoginAsChild(child.id, child.name)}
+                    disabled={loggingInChildId === child.id}
+                    style={{
+                      background: '#f97316',
+                      color: 'white',
+                      padding: '12px 24px',
+                      border: 'none',
+                      borderRadius: '10px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {loggingInChildId === child.id ? 'Входим...' : 'Войти как ребёнок'}
+                  </button>
+                </div>
+              </div>
+            ))
           )}
         </div>
       </div>
