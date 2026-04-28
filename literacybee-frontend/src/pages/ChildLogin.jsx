@@ -1,28 +1,62 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { loginChild } from '../store/authSlice';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 export default function ChildLogin() {
   const [childId, setChildId] = useState('');
-  const [pin, setPin] = useState('');
+  const [pin, setPin]         = useState('');
+  const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await dispatch(loginChild({ childId, pin })).unwrap();
-    navigate('/child/dashboard');
+    setLoading(true);
+    try {
+      await dispatch(loginChild({ childId, pin })).unwrap();
+      navigate('/child/dashboard');
+    } catch {
+      alert('Неверный ID или PIN');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-orange-50 flex items-center justify-center p-4">
-      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center">Вход для ребёнка</h2>
-        <input type="text" placeholder="ID ребёнка" value={childId} onChange={(e) => setChildId(e.target.value)} className="w-full p-3 border rounded-lg mb-3" required />
-        <input type="password" placeholder="PIN" value={pin} onChange={(e) => setPin(e.target.value)} className="w-full p-3 border rounded-lg mb-4" required />
-        <button type="submit" className="w-full bg-orange-500 text-white p-3 rounded-lg hover:bg-orange-600">Войти</button>
-      </form>
+    <div className="auth-bg">
+      <div className="auth-card">
+        <div className="auth-logo">
+          <div style={{ fontSize: '2.5rem', marginBottom: 4 }}>🚀</div>
+          <div className="auth-logo-text">Вход для ребёнка</div>
+          <div className="auth-logo-sub">Введи свой ID и PIN от родителя</div>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="auth-field">
+            <label className="auth-label">ID ребёнка</label>
+            <input
+              type="text" className="auth-input" placeholder="Твой ID"
+              value={childId} onChange={e => setChildId(e.target.value)} required
+            />
+          </div>
+          <div className="auth-field">
+            <label className="auth-label">PIN-код</label>
+            <input
+              type="password" className="auth-input" placeholder="••••"
+              value={pin} onChange={e => setPin(e.target.value)} required
+            />
+          </div>
+          <button type="submit" className="btn btn-orange btn-full" disabled={loading}
+            style={{ marginTop: 8 }}>
+            {loading ? 'Входим...' : '🚀 Войти'}
+          </button>
+        </form>
+
+        <div className="auth-link-row">
+          <Link to="/login" className="auth-link">← Вход для родителя</Link>
+        </div>
+      </div>
     </div>
   );
 }

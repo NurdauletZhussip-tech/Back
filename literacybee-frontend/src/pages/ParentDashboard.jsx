@@ -1,4 +1,3 @@
-// pages/ParentDashboard.jsx
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchChildren, createChild } from '../store/childSlice';
@@ -6,179 +5,96 @@ import { logout, loginChild } from '../store/authSlice';
 import { useNavigate, Link } from 'react-router-dom';
 
 export default function ParentDashboard() {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-
+  const dispatch  = useDispatch();
+  const navigate  = useNavigate();
   const { children } = useSelector((state) => state.child);
-  const { user } = useSelector((state) => state.auth);
+  const { user }     = useSelector((state) => state.auth);
 
   const [newChildName, setNewChildName] = useState('');
-  const [newChildPin, setNewChildPin] = useState('');
-  const [loggingInChildId, setLoggingInChildId] = useState(null);
+  const [newChildPin,  setNewChildPin]  = useState('');
+  const [loggingInId,  setLoggingInId]  = useState(null);
 
-  useEffect(() => {
-    dispatch(fetchChildren());
-  }, [dispatch]);
+  useEffect(() => { dispatch(fetchChildren()); }, [dispatch]);
 
   const handleCreateChild = async () => {
-    if (!newChildName || !newChildPin) return alert("Введите имя и PIN");
-    
+    if (!newChildName || !newChildPin) return alert('Введите имя и PIN');
     try {
       await dispatch(createChild({ name: newChildName, pin: newChildPin })).unwrap();
-      alert("Ребёнок создан успешно!");
-      setNewChildName('');
-      setNewChildPin('');
-    } catch (err) {
-      alert("Ошибка создания ребёнка");
-    }
+      setNewChildName(''); setNewChildPin('');
+    } catch { alert('Ошибка создания ребёнка'); }
   };
 
   const handleLoginAsChild = async (childId, name) => {
     const pin = prompt(`Введите PIN для ${name}:`);
     if (!pin) return;
-
-    setLoggingInChildId(childId);
+    setLoggingInId(childId);
     try {
       await dispatch(loginChild({ childId, pin })).unwrap();
       navigate('/child/dashboard');
-    } catch (err) {
-      alert("Неверный PIN");
-    } finally {
-      setLoggingInChildId(null);
-    }
+    } catch { alert('Неверный PIN'); }
+    finally { setLoggingInId(null); }
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      padding: '40px 20px',
-      fontFamily: 'Arial, sans-serif'
-    }}>
-      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-          <h1 style={{ color: 'white', fontSize: '42px', fontWeight: 'bold' }}>
-            Панель Родителя
-          </h1>
-          <button 
-            onClick={() => dispatch(logout())}
-            style={{
-              background: '#ef4444',
-              color: 'white',
-              padding: '12px 24px',
-              border: 'none',
-              borderRadius: '12px',
-              fontSize: '18px',
-              cursor: 'pointer'
-            }}
-          >
-            Выйти
-          </button>
+    <div className="parent-bg">
+      <div className="parent-inner">
+        {/* Header */}
+        <div className="parent-header">
+          <div>
+            <div className="parent-title">👨‍👩‍👧 Панель родителя</div>
+            <div style={{ color: 'rgba(255,255,255,.5)', fontWeight: 600, fontSize: '.95rem', marginTop: 4 }}>
+              Привет, {user?.name}!
+            </div>
+          </div>
+          <button className="logout-btn" onClick={() => dispatch(logout())}>Выйти</button>
         </div>
 
-        {/* Создать ребёнка */}
-        <div style={{
-          background: 'white',
-          borderRadius: '20px',
-          padding: '30px',
-          marginBottom: '40px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
-        }}>
-          <h2 style={{ fontSize: '28px', marginBottom: '20px' }}>Создать ребёнка</h2>
-          <div style={{ display: 'flex', gap: '15px' }}>
+        {/* Create child */}
+        <div className="parent-card">
+          <div className="parent-card-title">➕ Создать ребёнка</div>
+          <div className="create-child-row">
             <input
-              type="text"
-              placeholder="Имя ребёнка"
-              value={newChildName}
-              onChange={(e) => setNewChildName(e.target.value)}
-              style={{ flex: 1, padding: '15px', fontSize: '18px', borderRadius: '10px', border: '1px solid #ccc' }}
+              className="parent-input" type="text" placeholder="Имя ребёнка"
+              value={newChildName} onChange={e => setNewChildName(e.target.value)}
             />
             <input
-              type="text"
-              placeholder="PIN"
-              value={newChildPin}
-              onChange={(e) => setNewChildPin(e.target.value)}
-              style={{ width: '180px', padding: '15px', fontSize: '18px', borderRadius: '10px', border: '1px solid #ccc' }}
+              className="parent-input" type="text" placeholder="PIN-код"
+              value={newChildPin} onChange={e => setNewChildPin(e.target.value)}
+              style={{ maxWidth: 160 }}
             />
-            <button 
-              onClick={handleCreateChild}
-              style={{
-                background: '#304e50',
-                color: 'white',
-                padding: '15px 30px',
-                border: 'none',
-                borderRadius: '10px',
-                fontSize: '18px',
-                cursor: 'pointer'
-              }}
-            >
+            <button className="parent-create-btn" onClick={handleCreateChild}>
               Создать
             </button>
           </div>
         </div>
 
-        {/* Список детей */}
-        <div style={{
-          background: 'white',
-          borderRadius: '20px',
-          padding: '30px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
-        }}>
-          <h2 style={{ fontSize: '28px', marginBottom: '25px' }}>Мои дети</h2>
-
+        {/* Children list */}
+        <div className="parent-card">
+          <div className="parent-card-title">👧 Мои дети</div>
           {children.length === 0 ? (
-            <p style={{ textAlign: 'center', fontSize: '20px', color: '#666', padding: '60px 0' }}>
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,.35)', fontFamily: "'Fredoka One',cursive", fontSize: '1.2rem' }}>
               У вас пока нет детей
-            </p>
+            </div>
           ) : (
             children.map(child => (
-              <div key={child.id} style={{
-                border: '1px solid #ddd',
-                borderRadius: '15px',
-                padding: '25px',
-                marginBottom: '20px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                background: '#f8fafc'
-              }}>
+              <div key={child.id} className="child-item">
                 <div>
-                  <h3 style={{ fontSize: '26px', margin: '0 0 8px 0' }}>{child.name}</h3>
-                  <p style={{ color: '#666' }}>ID: {child.id.slice(0,8)}...</p>
+                  <div className="child-name">{child.name}</div>
+                  <div className="child-id">ID: {child.id.slice(0,8)}...</div>
                 </div>
-
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  {/* Кнопка Прогресс */}
+                <div className="child-actions">
                   <Link
                     to={`/parent/child/${child.id}/progress`}
-                    style={{
-                      background: '#10b981',
-                      color: 'white',
-                      padding: '12px 20px',
-                      borderRadius: '10px',
-                      textDecoration: 'none',
-                      fontWeight: 'bold'
-                    }}
+                    className="child-btn child-btn-green"
                   >
-                    Прогресс
+                    📊 Прогресс
                   </Link>
-
-                  {/* Кнопка Войти как ребёнок */}
                   <button
+                    className="child-btn child-btn-orange"
+                    disabled={loggingInId === child.id}
                     onClick={() => handleLoginAsChild(child.id, child.name)}
-                    disabled={loggingInChildId === child.id}
-                    style={{
-                      background: '#f97316',
-                      color: 'white',
-                      padding: '12px 24px',
-                      border: 'none',
-                      borderRadius: '10px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer'
-                    }}
                   >
-                    {loggingInChildId === child.id ? 'Входим...' : 'Войти как ребёнок'}
+                    {loggingInId === child.id ? 'Входим...' : '🚀 Войти как ребёнок'}
                   </button>
                 </div>
               </div>
