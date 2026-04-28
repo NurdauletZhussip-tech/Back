@@ -22,3 +22,15 @@ exports.submitExercise = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+const ExerciseModel = require('../models/exerciseModel');
+
+exports.getExercisesByLesson = async (req, res) => {
+  try {
+    const { lessonId } = req.params;
+    const exercises = await ExerciseModel.findByLessonId(lessonId);
+    res.json(exercises);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

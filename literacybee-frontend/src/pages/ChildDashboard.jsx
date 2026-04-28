@@ -1,38 +1,99 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchLessons } from '../store/lessonSlice';
 import { logout } from '../store/authSlice';
 import { Link } from 'react-router-dom';
+import api from '../api';
+
+const ICONS = ['📚','🔤','📖','🌟','🎯','🏆','🖼️','✏️','🎨','🔡'];
 
 export default function ChildDashboard() {
   const dispatch = useDispatch();
   const { lessons } = useSelector((state) => state.lesson);
   const { user } = useSelector((state) => state.auth);
+  const childId = user?.id;
+
+  const [dashboard, setDashboard] = useState(null);
+  const [stars] = useState(() =>
+    Array.from({ length: 50 }, (_, i) => ({
+      id: i,
+      top: Math.random() * 100,
+      left: Math.random() * 100,
+      size: 1 + Math.random() * 2.5,
+      dur: 2 + Math.random() * 4,
+      delay: Math.random() * 5,
+    }))
+  );
 
   useEffect(() => {
     dispatch(fetchLessons());
-  }, [dispatch]);
+    if (childId) {
+      api.get(`/lessons/dashboard/${childId}`)
+        .then(r => setDashboard(r.data))
+        .catch(() => {});
+    }
+  }, [dispatch, childId]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-orange-800">Привет, {user?.name}!</h1>
-          <p className="text-gray-600">Твои уроки и достижения</p>
-        </div>
-        <button onClick={() => dispatch(logout())} className="bg-red-500 text-white px-4 py-2 rounded-lg">Выйти</button>
-      </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {lessons.map((lesson) => (
-          <Link key={lesson.id} to={`/child/lesson/${lesson.id}`} className="bg-white rounded-xl shadow-md hover:shadow-lg transition p-5 block">
-            <h2 className="text-xl font-bold text-purple-700">{lesson.title}</h2>
-            <p className="text-gray-600 mt-1">{lesson.description}</p>
-            <div className="mt-3 flex justify-between items-center">
-              <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">🎁 {lesson.xp_reward} XP</span>
-              <span className="text-blue-500">Подробнее →</span>
-            </div>
-          </Link>
+    <div className="dashboard-root">
+      {/* Stars */}
+      <div className="stars-bg">
+        {stars.map(s => (
+          <div key={s.id} className="star-dot" style={{
+            top: `${s.top}%`, left: `${s.left}%`,
+            width: s.size, height: s.size,
+            animationDuration: `${s.dur}s`,
+            animationDelay: `${s.delay}s`,
+          }} />
         ))}
+      </div>
+
+      <div className="z1">
+        {/* Header */}
+        <div className="dashboard-header">
+          <div>
+            <div className="dashboard-greeting">Привет, {user?.name}! 👋</div>
+            <div className="dashboard-sub">Твои уроки и достижения</div>
+          </div>
+          <button className="logout-btn" onClick={() => dispatch(logout())}>
+            Выйти
+          </button>
+        </div>
+
+        {/* Stats chips */}
+        {dashboard && (
+          <div className="dashboard-stats">
+            <div className="stat-chip">⚡ XP: <span>{dashboard.totalXp || 0}</span></div>
+            <div className="stat-chip">🔥 Серия: <span>{dashboard.currentStreak || 0} дней</span></div>
+            <div className="stat-chip">🏆 Уроков: <span>{dashboard.lessonsCompleted || 0}</span></div>
+          </div>
+        )}
+
+        {/* Lessons grid */}
+        {lessons.length === 0 ? (
+          <div className="empty-state">😕 Уроков пока нет</div>
+        ) : (
+          <div className="lessons-grid">
+            {lessons.map((lesson, idx) => (
+              <Link
+                key={lesson.id}
+                to={`/child/lesson/${lesson.id}`}
+                className="lesson-card"
+              >
+                <div className="lesson-card-icon">{ICONS[idx % ICONS.length]}</div>
+                <div className="lesson-card-title">{lesson.title}</div>
+                <div className="lesson-card-desc">{lesson.description}</div>
+                <div className="lesson-card-footer">
+                  <span className="xp-badge">⚡ {lesson.xp_reward} XP</span>
+                  <span className="go-arrow">→</span>
+                </div>
+                <div className="progress-bar-wrap">
+                  <div className="progress-bar-fill" style={{ width: `${lesson.completionRate || 0}%` }} />
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
