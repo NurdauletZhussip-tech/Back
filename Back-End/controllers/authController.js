@@ -51,3 +51,17 @@ exports.createChild = async (req, res, next) => {
     next(err);
   }
 };
+ exports.loginChild = async (req, res) => {
+  try {
+    const { childId, pin } = req.body;
+    if (!childId || !pin) return res.status(400).json({ error: 'Child ID and PIN required' });
+
+    const result = await AuthService.loginChild(childId, pin);
+    res.json(result);
+  } catch (err) {
+    if (err.message === 'INVALID_CREDENTIALS') {
+      return res.status(401).json({ error: 'Invalid PIN' });
+    }
+    res.status(500).json({ error: err.message });
+  }
+};

@@ -3,7 +3,7 @@ const ProgressModel = require('../models/progressModel');
 const ExerciseModel = require('../models/exerciseModel');
 const AttemptModel = require('../models/attemptModel');
 const StreakModel = require('../models/streakModel');
-const UserBadgeModel = require('../models/userBadgeModel');
+const GamificationService = require('../services/gamificationService');
 
 exports.getChildProgress = async (req, res) => {
   try {
@@ -16,13 +16,13 @@ exports.getChildProgress = async (req, res) => {
 
       const exercises = await ExerciseModel.findByLessonId(lesson.id);
       const attempts = await AttemptModel.getLastCorrectPerExercise(childId, lesson.id);
-      const completedExercises = attempts.filter(a => a.last_correct === true).length;
+      const completedCount = attempts.filter(a => a.last_correct === true).length;
 
       return {
         ...lesson,
         progress,
         totalExercises: exercises.length,
-        completedExercises,
+        completedExercises: completedCount,
         completionRate: progress.score || 0
       };
     }));
@@ -38,9 +38,7 @@ exports.getChildDashboard = async (req, res) => {
     const { childId } = req.params;
     const totalXp = await AttemptModel.sumXpByChild(childId);
     const streak = await StreakModel.findByChild(childId) || { current_streak: 0, longest_streak: 0 };
-    const lessonsCompleted = await require('../services/gamificationService').countCompletedLessons(childId);
-
-
+    const lessonsCompleted = await GamificationService.countCompletedLessons(childId);
 
     res.json({
       totalXp,

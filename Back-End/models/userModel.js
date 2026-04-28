@@ -5,9 +5,22 @@ class UserModel {
     const res = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     return res.rows[0];
   }
-  static async findById(id) {
-    const res = await pool.query('SELECT id, email, role, parent_id, name, avatar_url FROM users WHERE id = $1', [id]);
-    return res.rows[0];
+ static async findById(id) {
+  const res = await pool.query(
+    'SELECT id, email, role, parent_id, name, pin, avatar_url FROM users WHERE id = $1', 
+    [id]
+  );
+  return res.rows[0];
+}
+  static async findChildrenByParent(parentId) {
+    const res = await pool.query(
+      `SELECT id, name, avatar_url, created_at 
+       FROM users 
+       WHERE parent_id = $1 AND role = 'child' 
+       ORDER BY name`,
+      [parentId]
+    );
+    return res.rows;
   }
   static async createParent({ email, passwordHash, name }) {
     const res = await pool.query(

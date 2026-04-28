@@ -1,3 +1,4 @@
+
 const jwt = require('jsonwebtoken');
 const UserModel = require('../models/userModel');
 
@@ -6,11 +7,13 @@ exports.authenticate = async (req, res, next) => {
   if (!auth || !auth.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token provided' });
   }
+
   const token = auth.split(' ')[1];
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await UserModel.findById(decoded.userId);
-    if (!user) throw new Error('User not found');
+    if (!user) throw new Error();
+    
     req.user = user;
     req.userId = decoded.userId;
     req.userRole = decoded.role;
@@ -34,25 +37,24 @@ exports.authorizeChildAccess = async (req, res, next) => {
     if (!childId) return next();
 
     if (req.userRole === 'child') {
-      if (req.userId.toString() !== childId.toString()) {
-        return res.status(403).json({ error: 'Access denied to this child profile' });
+      if (String(req.userId) !== String(childId)) {
+        return res.status(403).json({ error: 'Access denied to this child' });
       }
       return next();
     }
 
     if (req.userRole === 'parent') {
       const child = await UserModel.findById(childId);
-      if (!child || child.parent_id.toString() !== req.userId.toString()) {
+      if (!child || String(child.parent_id) !== String(req.userId)) {
         return res.status(403).json({ error: 'This child does not belong to you' });
       }
       return next();
     }
 
-    return res.status(403).json({ error: 'Access denied' });
+    res.status(403).json({ error: 'Access denied' });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: 'Authorization error' });
   }
 };
 
-module.exports = exports; 
+module.exports = exports;
