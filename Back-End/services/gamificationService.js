@@ -35,7 +35,7 @@ class GamificationService {
     for (const badge of badges) {
       const awarded = await UserBadgeModel.award(childId, badge.id);
       if (awarded) {
-        await NotificationModel.create({ userId: childId, type: 'badge', message: `🎉 You earned "${badge.name}"!` });
+        await NotificationModel.create({ userId: childId, type: 'badge', message: `You earned "${badge.name}"!` });
       }
     }
   }
@@ -43,8 +43,7 @@ class GamificationService {
   static async refreshBadges(childId) {
     const totalXp = await AttemptModel.sumXpByChild(childId);
     await this.checkAndAwardBadge(childId, 'total_xp', totalXp);
-    const progressRes = await ProgressModel.findByChildAndLesson(childId, null); // не используется, но можно сделать отдельный запрос
-    // Для lessons_completed нужен отдельный запрос, но для простоты оставим так
+    const progressRes = await ProgressModel.findByChildAndLesson(childId, null);
     const lessonsCompleted = await this.countCompletedLessons(childId);
     await this.checkAndAwardBadge(childId, 'lessons_completed', lessonsCompleted);
   }

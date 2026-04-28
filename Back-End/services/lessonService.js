@@ -18,7 +18,6 @@ class LessonService {
       progress = await ProgressModel.createOrUpdate({ childId, lessonId, completed: false, score: 0, completedAt: null });
     }
 
-    // пересчёт score на основе последних попыток
     const attemptsData = await AttemptModel.getLastCorrectPerExercise(childId, lessonId);
     const total = attemptsData.length;
     const correctCount = attemptsData.filter(a => a.last_correct === true).length;
@@ -27,7 +26,6 @@ class LessonService {
     const completedAt = completed && !progress.completed ? new Date() : progress.completed_at;
     await ProgressModel.createOrUpdate({ childId, lessonId, completed, score: newScore, completedAt });
 
-    // Обновляем геймификацию
     await GamificationService.updateStreak(childId);
     await GamificationService.refreshBadges(childId);
 

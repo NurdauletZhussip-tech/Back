@@ -1,51 +1,30 @@
-require('dotenv').config();
 const express = require('express');
 const router = express.Router();
 const { authenticate, requireRole } = require('../middleware/authMiddleware');
-const UserModel = require('../models/userModel');
-const bcrypt = require('bcrypt');
+const AuthController = require('../controllers/authController');
 
-router.post('/register', async (req, res) => {
-  const { email, password, name } = req.body;
-  if (!email || !password || !name) return res.status(400).json({ error: 'Missing fields' });
+router.post('/register', AuthController.registerParent);
+router.post('/login', AuthController.loginParent);
+router.post('/children', authenticate, requireRole('parent'), AuthController.createChild);
+
+router.post('/child/login', async (req, res) => {
+  const { childId, pin } = req.body;
+  if (!childId || !pin) return res.status(400).json({ error: 'Child ID and PIN required' });
   try {
-    const existing = await UserModel.findByEmail(email);
-    if (existing) return res.status(409).json({ error: 'Email exists' });
-    const hashed = await bcrypt.hash(password, 10);
-    const user = await UserModel.createParent({ email, passwordHash: hashed, name });
+    const bcrypt = require('bcrypt');
+    const UserModel = require('../models/userModel');
+    const child = await UserModel.findById(childId);
+    if (!child || child.role !== 'child') {
+      return res.status(404).json({ error: 'Child not found' });
+    }
+    const valid = await bcrypt.compare(pin, child.pin);
+    if (!valid) return res.status(401).json({ error: 'Invalid PIN' });
     const jwt = require('jsonwebtoken');
-    const token = jwt.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.status(201).json({ user, token });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    const token = jwt.sign({ userId: child.id, role: child.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const { pin: _, ...safeChild } = child;
+    res.json({ user: safeChild, token });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
-
-router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: 'Missing fields' });
-  try {
-    const user = await UserModel.findByEmail(email);
-    if (!user || user.role !== 'parent') return res.status(401).json({ error: 'Invalid credentials' });
-    const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
-    const jwt = require('jsonwebtoken');
-    const token = jwt.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    const { password_hash, ...safeUser } = user;
-    res.json({ user: safeUser, token });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-router.post('/children', authenticate, requireRole('parent'), async (req, res, next) => {
-  try {
-    const { name, pin } = req.body;
-    if (!name || !pin) return res.status(400).json({ error: 'Name and PIN required' });
-    const pinHash = await bcrypt.hash(pin, parseInt(process.env.BCRYPT_ROUNDS));
-    const child = await UserModel.createChild({
-      parentId: req.userId,
-      name,
-      pinHash
-    });
-    res.status(201).json(child);
-  } catch (err) { next(err); }
-});
-
 module.exports = router;
