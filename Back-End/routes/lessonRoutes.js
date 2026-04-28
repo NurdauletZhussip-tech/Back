@@ -4,6 +4,7 @@ const { getChildProgress, getChildDashboard } = require('../controllers/progress
 const { authenticate, authorizeChildAccess } = require('../middleware/authMiddleware');
 
 router.get('/', authenticate, getLessons);
+
 router.get('/progress/:childId', authenticate, authorizeChildAccess, getChildProgress);
 router.get('/dashboard/:childId', authenticate, authorizeChildAccess, getChildDashboard);
 
