@@ -12,8 +12,11 @@ class AuthService {
   static async registerParent(email, password, name) {
     const existing = await UserModel.findByEmail(email);
     if (existing) throw new Error('EMAIL_EXISTS');
-    const hashedPassword = await bcrypt.hash(password, parseInt(process.env.BCRYPT_ROUNDS || 10));
-    const user = await UserModel.createParent({ email, passwordHash: hashedPassword, name });
+
+    const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+        const user = await UserModel.createParent({ email, password_hash: hashedPassword, name });
     const token = this.generateToken(user.id, user.role);
     return { user, token };
   }
@@ -21,8 +24,10 @@ class AuthService {
   static async loginParent(email, password) {
     const user = await UserModel.findByEmail(email);
     if (!user || user.role !== 'parent') throw new Error('INVALID_CREDENTIALS');
+
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) throw new Error('INVALID_CREDENTIALS');
+
     const token = this.generateToken(user.id, user.role);
     const { password_hash, ...safeUser } = user;
     return { user: safeUser, token };
@@ -30,14 +35,17 @@ class AuthService {
 
   static async loginChild(childId, pin) {
     const child = await UserModel.findById(childId);
-    if (!child || child.role !== 'child' || !child.pin) {
+    const storedHash = child?.pin_hash || child?.pin;
+
+    if (!child || child.role !== 'child' || !storedHash) {
       throw new Error('INVALID_CREDENTIALS');
     }
-    const valid = await bcrypt.compare(pin, child.pin);
+
+    const valid = await bcrypt.compare(pin, storedHash);
     if (!valid) throw new Error('INVALID_CREDENTIALS');
 
     const token = this.generateToken(child.id, 'child');
-    const { pin: _, ...safeChild } = child;
+    const { pin_hash, pin: _, ...safeChild } = child;
     return { user: safeChild, token };
   }
 }

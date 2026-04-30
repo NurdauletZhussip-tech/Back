@@ -4,6 +4,8 @@ const bcrypt = require('bcrypt');
 
 exports.registerParent = async (req, res) => {
   try {
+    if (!req.body) return res.status(400).json({ error: 'Body is missing' });
+
     const { email, password, name } = req.body;
     if (!email || !password || !name) {
       return res.status(400).json({ error: 'Missing fields: email, password, name' });
@@ -20,6 +22,8 @@ exports.registerParent = async (req, res) => {
 
 exports.loginParent = async (req, res) => {
   try {
+    if (!req.body) return res.status(400).json({ error: 'Body is missing' });
+
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: 'Missing email or password' });
@@ -36,11 +40,15 @@ exports.loginParent = async (req, res) => {
 
 exports.createChild = async (req, res, next) => {
   try {
+    if (!req.body) return res.status(400).json({ error: 'Body is missing' });
+
     const { name, pin } = req.body;
     if (!name || !pin) {
       return res.status(400).json({ error: 'Name and PIN are required' });
     }
-    const pinHash = await bcrypt.hash(pin, parseInt(process.env.BCRYPT_ROUNDS));
+    const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 10;
+    const pinHash = await bcrypt.hash(pin, saltRounds);
+
     const child = await UserModel.createChild({
       parentId: req.userId,
       name,
@@ -51,8 +59,11 @@ exports.createChild = async (req, res, next) => {
     next(err);
   }
 };
- exports.loginChild = async (req, res) => {
+
+exports.loginChild = async (req, res) => {
   try {
+    if (!req.body) return res.status(400).json({ error: 'Body is missing' });
+
     const { childId, pin } = req.body;
     if (!childId || !pin) return res.status(400).json({ error: 'Child ID and PIN required' });
 
