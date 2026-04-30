@@ -1,13 +1,17 @@
-const pool = require('../db');
+const prisma = require('../prismaClient');
 
 class ExerciseModel {
   static async findByLessonId(lessonId) {
-    const res = await pool.query('SELECT * FROM exercises WHERE lesson_id = $1 ORDER BY order_index', [lessonId]);
-    return res.rows;
+    return await prisma.exercises.findMany({
+      where: { lesson_id: lessonId },
+      orderBy: { order_index: 'asc' }
+    });
   }
+
   static async findById(id) {
-    const res = await pool.query('SELECT * FROM exercises WHERE id = $1', [id]);
-    return res.rows[0];
+    return await prisma.exercises.findUnique({
+      where: { id: id }
+    });
   }
 }
 module.exports = ExerciseModel;

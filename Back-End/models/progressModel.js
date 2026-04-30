@@ -1,27 +1,18 @@
-const pool = require('../db');
+const prisma = require('../prismaClient');
 
 class ProgressModel {
   static async findByChildAndLesson(childId, lessonId) {
-    const res = await pool.query('SELECT * FROM progress WHERE child_id = $1 AND lesson_id = $2', [childId, lessonId]);
-    return res.rows[0];
+    return await prisma.progress.findUnique({
+      where: { child_id_lesson_id: { child_id: childId, lesson_id: lessonId } }
+    });
   }
+
   static async createOrUpdate({ childId, lessonId, completed, score, completedAt }) {
-    const existing = await this.findByChildAndLesson(childId, lessonId);
-    if (existing) {
-      const res = await pool.query(
-        `UPDATE progress SET completed=$1, score=$2, completed_at=$3, updated_at=NOW()
-         WHERE id=$4 RETURNING *`,
-        [completed, score, completedAt, existing.id]
-      );
-      return res.rows[0];
-    } else {
-      const res = await pool.query(
-        `INSERT INTO progress (child_id, lesson_id, completed, score, completed_at)
-         VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-        [childId, lessonId, completed, score, completedAt]
-      );
-      return res.rows[0];
-    }
+    return await prisma.progress.upsert({
+      where: { child_id_lesson_id: { child_id: childId, lesson_id: lessonId } },
+      update: { completed, score, completed_at: completedAt, updated_at: new Date() },
+      create: { child_id: childId, lesson_id: lessonId, completed, score, completed_at: completedAt }
+    });
   }
 }
 module.exports = ProgressModel;

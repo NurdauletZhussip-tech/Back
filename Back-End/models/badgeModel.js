@@ -1,9 +1,13 @@
-const pool = require('../db');
+const prisma = require('../prismaClient');
 
 class BadgeModel {
   static async findByCriteria(criteriaType, value) {
-    const res = await pool.query('SELECT * FROM badges WHERE criteria_type = $1 AND criteria_value <= $2', [criteriaType, value]);
-    return res.rows;
+    return await prisma.badges.findMany({
+      where: {
+        criteria_type: criteriaType,
+        criteria_value: { lte: value }
+      }
+    });
   }
 }
 module.exports = BadgeModel;

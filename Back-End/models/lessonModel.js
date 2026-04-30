@@ -1,13 +1,16 @@
-const pool = require('../db');
+const prisma = require('../prismaClient');
 
 class LessonModel {
   static async findAll() {
-    const res = await pool.query('SELECT * FROM lessons ORDER BY order_index');
-    return res.rows;
+    return await prisma.lessons.findMany({
+      orderBy: { order_index: 'asc' }
+    });
   }
+
   static async findById(id) {
-    const res = await pool.query('SELECT * FROM lessons WHERE id = $1', [id]);
-    return res.rows[0];
+    return await prisma.lessons.findUnique({
+      where: { id: id }
+    });
   }
 }
 module.exports = LessonModel;

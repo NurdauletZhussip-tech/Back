@@ -1,12 +1,10 @@
-const pool = require('../db');
+const prisma = require('../prismaClient');
 
 class NotificationModel {
   static async create({ userId, type, message }) {
-    const res = await pool.query(
-      `INSERT INTO notifications (user_id, type, message) VALUES ($1,$2,$3) RETURNING *`,
-      [userId, type, message]
-    );
-    return res.rows[0];
+    return await prisma.notifications.create({
+      data: { user_id: userId, type: type, message: message }
+    });
   }
 }
 module.exports = NotificationModel;

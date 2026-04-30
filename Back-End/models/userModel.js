@@ -1,42 +1,77 @@
-const pool = require('../db');
+// models/userModel.js
+const prisma = require('../prismaClient');
 
 class UserModel {
   static async findByEmail(email) {
-    const res = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    return res.rows[0];
+    return await prisma.users.findUnique({
+      where: { email: email }
+    });
   }
- static async findById(id) {
-  const res = await pool.query(
-    'SELECT id, email, role, parent_id, name, pin, avatar_url FROM users WHERE id = $1', 
-    [id]
-  );
-  return res.rows[0];
-}
+
+  static async findById(id) {
+    return await prisma.users.findUnique({
+      where: { id: id },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        parent_id: true,
+        name: true,
+        pin: true,
+        avatar_url: true
+      }
+    });
+  }
+
   static async findChildrenByParent(parentId) {
-    const res = await pool.query(
-      `SELECT id, name, avatar_url, created_at 
-       FROM users 
-       WHERE parent_id = $1 AND role = 'child' 
-       ORDER BY name`,
-      [parentId]
-    );
-    return res.rows;
+    return await prisma.users.findMany({
+      where: {
+        parent_id: parentId,
+        role: 'child'
+      },
+      select: {
+        id: true,
+        name: true,
+        avatar_url: true,
+        created_at: true
+      },
+      orderBy: { name: 'asc' }
+    });
   }
+
   static async createParent({ email, passwordHash, name }) {
-    const res = await pool.query(
-      `INSERT INTO users (email, password_hash, role, name)
-       VALUES ($1, $2, $3, $4) RETURNING id, email, role, name`,
-      [email, passwordHash, 'parent', name]
-    );
-    return res.rows[0];
+    return await prisma.users.create({
+      data: {
+        email: email,
+        password_hash: passwordHash,
+        role: 'parent',
+        name: name
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        name: true
+      }
+    });
   }
+
   static async createChild({ parentId, name, pinHash }) {
-    const res = await pool.query(
-      `INSERT INTO users (parent_id, role, name, pin)
-       VALUES ($1, $2, $3, $4) RETURNING id, name, role, parent_id`,
-      [parentId, 'child', name, pinHash]
-    );
-    return res.rows[0];
+    return await prisma.users.create({
+      data: {
+        parent_id: parentId,
+        role: 'child',
+        name: name,
+        pin: pinHash
+      },
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        parent_id: true
+      }
+    });
   }
 }
+
 module.exports = UserModel;

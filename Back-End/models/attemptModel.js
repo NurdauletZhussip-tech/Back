@@ -1,26 +1,37 @@
-const pool = require('../db');
+const prisma = require('../prismaClient');
 
 class AttemptModel {
   static async create({ childId, exerciseId, correct, xpEarned }) {
-    const res = await pool.query(
-      `INSERT INTO exercise_attempts (child_id, exercise_id, correct, xp_earned)
-       VALUES ($1,$2,$3,$4) RETURNING *`,
-      [childId, exerciseId, correct, xpEarned]
-    );
-    return res.rows[0];
+    return await prisma.exercise_attempts.create({
+      data: { child_id: childId, exercise_id: exerciseId, correct, xp_earned: xpEarned }
+    });
   }
+
   static async sumXpByChild(childId) {
-    const res = await pool.query('SELECT COALESCE(SUM(xp_earned),0) as total FROM exercise_attempts WHERE child_id = $1', [childId]);
-    return parseInt(res.rows[0].total);
+    const result = await prisma.exercise_attempts.aggregate({
+      where: { child_id: childId },
+      _sum: { xp_earned: true }
+    });
+    return result._sum.xp_earned || 0;
   }
+
   static async getLastCorrectPerExercise(childId, lessonId) {
-    const res = await pool.query(
-      `SELECT e.id,
-        (SELECT correct FROM exercise_attempts WHERE child_id=$1 AND exercise_id=e.id ORDER BY attempted_at DESC LIMIT 1) as last_correct
-       FROM exercises e WHERE e.lesson_id=$2`,
-      [childId, lessonId]
-    );
-    return res.rows;
+    const exercises = await prisma.exercises.findMany({
+      where: { lesson_id: lessonId },
+      select: {
+        id: true,
+        exercise_attempts: {
+          where: { child_id: childId },
+          orderBy: { attempted_at: 'desc' },
+          take: 1,
+          select: { correct: true }
+        }
+      }
+    });
+    return exercises.map(e => ({
+      id: e.id,
+      last_correct: e.exercise_attempts[0] ? e.exercise_attempts[0].correct : null
+    }));
   }
 }
 module.exports = AttemptModel;
