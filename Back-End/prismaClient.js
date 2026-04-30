@@ -8,6 +8,39 @@ const pool = new Pool({ connectionString });
 
 const adapter = new PrismaPg(pool);
 
-const prisma = new PrismaClient({ adapter });
+const basePrisma = new PrismaClient({ adapter });
+
+const prisma = basePrisma.$extends({
+  model: {
+    $allModels: {
+      async paginate({ page = 1, limit = 10, where = {}, orderBy = { id: 'asc' }, include = {} }) {
+        const skip = (page - 1) * limit;
+        const take = limit;
+
+        const [data, totalItems] = await Promise.all([
+          this.findMany({
+            where,
+            take,
+            skip,
+            orderBy,
+            include
+          }),
+          this.count({ where })
+        ]);
+
+        return {
+          data,
+          meta: {
+            totalItems,
+            itemCount: data.length,
+            itemsPerPage: limit,
+            totalPages: Math.ceil(totalItems / limit),
+            currentPage: page
+          }
+        };
+      }
+    }
+  }
+});
 
 module.exports = prisma;

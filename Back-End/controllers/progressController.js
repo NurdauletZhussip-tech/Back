@@ -1,4 +1,4 @@
-const LessonModel = require('../models/lessonModel');
+const LessonService = require('../services/lessonService');
 const ProgressModel = require('../models/progressModel');
 const ExerciseModel = require('../models/exerciseModel');
 const AttemptModel = require('../models/attemptModel');
@@ -8,10 +8,11 @@ const GamificationService = require('../services/gamificationService');
 exports.getChildProgress = async (req, res) => {
   try {
     const { childId } = req.params;
-    const lessons = await LessonModel.findAll();
 
-    const result = await Promise.all(lessons.map(async (lesson) => {
-      const progress = await ProgressModel.findByChildAndLesson(childId, lesson.id) || 
+    const paginatedLessons = await LessonService.getAllLessonsPaginated(req.query);
+
+    const enrichedData = await Promise.all(paginatedLessons.data.map(async (lesson) => {
+      const progress = await ProgressModel.findByChildAndLesson(childId, lesson.id) ||
                        { completed: false, score: 0 };
 
       const exercises = await ExerciseModel.findByLessonId(lesson.id);
@@ -27,7 +28,10 @@ exports.getChildProgress = async (req, res) => {
       };
     }));
 
-    res.json(result);
+    res.json({
+      data: enrichedData,
+      meta: paginatedLessons.meta
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
