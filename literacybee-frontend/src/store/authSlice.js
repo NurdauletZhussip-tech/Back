@@ -41,7 +41,8 @@ const authSlice = createSlice({
       .addCase(loginParent.fulfilled, (state, action) => {
         state.user = action.payload.user;
         state.token = action.payload.token;
-        state.role = 'parent';
+        state.role = action.payload.user.role;
+
         localStorage.setItem('token', action.payload.token);
       })
       .addCase(loginChild.fulfilled, (state, action) => {

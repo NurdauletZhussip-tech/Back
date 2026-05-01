@@ -39,22 +39,22 @@ class UserModel {
     });
   }
 
-  static async createParent({ email, passwordHash, name }) {
-    return await prisma.users.create({
-      data: {
-        email: email,
-        password_hash: passwordHash,
-        role: 'parent',
-        name: name
-      },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        name: true
-      }
-    });
-  }
+  static async createParent({ email, password_hash, name }) {
+      return await prisma.users.create({
+        data: {
+          email: email,
+          password_hash: password_hash,
+          role: 'parent',
+          name: name
+        },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          name: true
+        }
+      });
+    }
 
   static async createChild({ parentId, name, pinHash }) {
     return await prisma.users.create({

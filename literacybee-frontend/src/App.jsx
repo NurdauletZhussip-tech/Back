@@ -10,7 +10,7 @@ import ChildDashboard  from './pages/ChildDashboard.jsx';
 import LessonPage      from './pages/LessonPage.jsx';
 import ProgressPage    from './pages/ProgressPage.jsx';
 import PrivateRoute    from './components/PrivateRoute.jsx';
-
+import AdminDashboard from './pages/AdminDashboard.jsx';
 function App() {
   return (
     <Provider store={store}>
@@ -34,6 +34,11 @@ function App() {
           <Route path="/child/lesson/:lessonId" element={
             <PrivateRoute allowedRoles={['child']}><LessonPage /></PrivateRoute>
           } />
+     <Route path="/admin" element={
+       <PrivateRoute allowedRoles={['admin']}>
+         <AdminDashboard />
+       </PrivateRoute>
+     } />
         </Routes>
       </BrowserRouter>
     </Provider>

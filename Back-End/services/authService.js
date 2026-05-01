@@ -22,16 +22,21 @@ class AuthService {
   }
 
   static async loginParent(email, password) {
-    const user = await UserModel.findByEmail(email);
-    if (!user || user.role !== 'parent') throw new Error('INVALID_CREDENTIALS');
-
-    const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) throw new Error('INVALID_CREDENTIALS');
-
-    const token = this.generateToken(user.id, user.role);
-    const { password_hash, ...safeUser } = user;
-    return { user: safeUser, token };
-  }
+      const user = await UserModel.findByEmail(email);
+  if (!user || (user.role !== 'parent' && user.role !== 'admin')) {
+        throw new Error('INVALID_CREDENTIALS');
+      }
+      if (!user.password_hash) {
+        throw new Error('INVALID_CREDENTIALS');
+      }
+      const valid = await bcrypt.compare(password, user.password_hash);
+      if (!valid) {
+        throw new Error('INVALID_CREDENTIALS');
+      }
+      const token = this.generateToken(user.id, user.role);
+      const { password_hash, ...safeUser } = user;
+      return { user: safeUser, token };
+    }
 
   static async loginChild(childId, pin) {
     const child = await UserModel.findById(childId);

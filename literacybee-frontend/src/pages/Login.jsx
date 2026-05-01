@@ -14,8 +14,16 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      await dispatch(loginParent({ email, password })).unwrap();
-      navigate('/parent/dashboard');
+      // Сохраняем результат ответа сервера в переменную
+      const result = await dispatch(loginParent({ email, password })).unwrap();
+
+      // Проверяем роль и направляем на нужный роут
+      if (result.user.role === 'admin') {
+        navigate('/admin'); // Если админ - добро пожаловать в админку
+      } else {
+        navigate('/parent/dashboard'); // Если обычный родитель - в дашборд
+      }
+
     } catch {
       alert('Неверный email или пароль');
     } finally {
@@ -28,7 +36,7 @@ export default function Login() {
       <div className="auth-card">
         <div className="auth-logo">
           <div className="auth-logo-text">🐝 LiteracyBee</div>
-          <div className="auth-logo-sub">Войдите в аккаунт родителя</div>
+          <div className="auth-logo-sub">Войдите в аккаунт</div>
         </div>
 
         <form onSubmit={handleSubmit}>
