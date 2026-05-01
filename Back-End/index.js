@@ -15,9 +15,19 @@ app.use('/api/admin', adminRoutes);
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100
+  max: 500,                    
+  message: { error: 'Too many requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use('/api/', limiter);
+
+app.use('/api/auth', rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100
+}));
+app.use('/api/lessons', limiter);
+app.use('/api/admin', limiter);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/lessons', lessonRoutes);
