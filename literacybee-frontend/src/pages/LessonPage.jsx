@@ -35,23 +35,39 @@ export default function LessonPage() {
     }))
   );
 
+  // LessonPage.jsx — исправленный useEffect
+
   useEffect(() => {
-    (async () => {
+    const loadLessonData = async () => {
       try {
+        setLoading(true);
+        
         const [lessonRes, exRes] = await Promise.all([
-          api.get(`/lessons/${lessonId}`),
-          api.get(`/lessons/${lessonId}/exercises`),
+          api.get(`/lessons/${lessonId}`),                    // Получаем урок
+          api.get(`/lessons/${lessonId}/exercises`)           // Получаем упражнения
         ]);
+
         setLesson(lessonRes.data);
-        const data = exRes.data || [];
-        setExercises(data);
-        if (data.length > 0) setSelected(data[0]);
+        
+        // Важно: правильно обрабатываем ответ с упражнениями
+        const exercisesData = exRes.data?.data || exRes.data || [];
+        setExercises(exercisesData);
+
+        if (exercisesData.length > 0) {
+          setSelected(exercisesData[0]);
+        }
       } catch (err) {
         console.error('Ошибка загрузки урока:', err);
+        // Для отладки:
+        console.log("Lesson ID:", lessonId);
       } finally {
         setLoading(false);
       }
-    })();
+    };
+
+    if (lessonId) {
+      loadLessonData();
+    }
   }, [lessonId]);
 
   const refreshExercises = async () => {
@@ -63,33 +79,57 @@ export default function LessonPage() {
     } catch { return []; }
   };
 
-  const handleSubmit = async () => {
-    if (!selected || !answer.trim()) return;
-    setSubmitting(true);
-    setResult(null);
-    try {
-      const res = await dispatch(submitExercise({
-        childId, exerciseId: selected.id, answer: answer.trim(),
-      })).unwrap();
+ const handleSubmit = async () => {
+  if (!selected || !answer.trim()) return;
 
-      setResult({ correct: res.correct, xpEarned: res.xpEarned, correctAnswer: selected.correct_answer });
-      setAnswer('');
+  setSubmitting(true);
+  setResult(null);
 
-      if (res.correct) {
-        setCelebrate(true);
-        setTimeout(() => setCelebrate(false), 2500);
-      } else {
-        setShake(true);
-        setTimeout(() => setShake(false), 600);
-      }
+  try {
+    const res = await dispatch(submitExercise({
+      childId: user?.id,                    // ← Используем user.id из Redux
+      exerciseId: selected.id,
+      answer: answer.trim(),
+    })).unwrap();
 
-      const fresh = await refreshExercises();
-      const stillThere = fresh.find(e => e.id === selected.id);
+    setResult({ 
+      correct: res.isCorrect, 
+      xpEarned: res.xpEarned || (res.isCorrect ? selected.xp_value : 0),
+      correctAnswer: selected.correct_answer 
+    });
+
+    setAnswer('');
+
+    if (res.isCorrect) {
+      setCelebrate(true);
+      setTimeout(() => setCelebrate(false), 2500);
+    } else {
+      setShake(true);
+      setTimeout(() => setShake(false), 600);
+    }
+
+    // Перезагружаем упражнения после ответа
+    const fresh = await api.get(`/lessons/${lessonId}/exercises`);
+    const exercisesData = fresh.data?.data || fresh.data || [];
+    setExercises(exercisesData);
+
+    if (exercisesData.length > 0) {
+      const stillThere = exercisesData.find(e => e.id === selected.id);
       if (stillThere) setSelected(stillThere);
+    }
 
-    } catch { setResult({ error: true }); }
-    finally  { setSubmitting(false); }
-  };
+  } catch (err) {
+    console.error("Ошибка отправки ответа:", err);
+    setResult({ error: true });
+    
+    // Полезный лог для отладки
+    if (err.response?.status === 403) {
+      alert("Ошибка доступа. Проверьте, что вы вошли как этот ребёнок.");
+    }
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const pickEx = (ex) => { setSelected(ex); setResult(null); setAnswer(''); };
 

@@ -36,25 +36,37 @@ exports.authorizeChildAccess = async (req, res, next) => {
     const { childId } = req.params;
     if (!childId) return next();
 
+    const userIdFromToken = String(req.userId || '');
+    const childIdFromUrl = String(childId);
+
+    console.log(`[authorizeChildAccess] Role: ${req.userRole}, TokenUserId: ${userIdFromToken}, ParamChildId: ${childIdFromUrl}`);
+
+    // === CHILD ===
     if (req.userRole === 'child') {
-      if (String(req.userId) !== String(childId)) {
-        return res.status(403).json({ error: 'Access denied to this child' });
+      if (userIdFromToken === childIdFromUrl) {
+        return next();
       }
-      return next();
+      console.log(`[authorizeChildAccess] Child access DENIED`);
+      return res.status(403).json({ error: 'Access denied to this child' });
     }
 
+    // === PARENT ===
     if (req.userRole === 'parent') {
       const child = await UserModel.findById(childId);
-      if (!child || String(child.parent_id) !== String(req.userId)) {
+      if (!child || String(child.parent_id) !== userIdFromToken) {
         return res.status(403).json({ error: 'This child does not belong to you' });
       }
       return next();
     }
 
-    res.status(403).json({ error: 'Access denied' });
+    // === ADMIN (для удобства разработки) ===
+    if (req.userRole === 'admin') {
+      return next();
+    }
+
+    return res.status(403).json({ error: 'Access denied' });
   } catch (err) {
+    console.error('Authorization error in authorizeChildAccess:', err);
     res.status(500).json({ error: 'Authorization error' });
   }
 };
-
-module.exports = exports;
