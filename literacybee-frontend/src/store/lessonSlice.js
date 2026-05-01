@@ -64,7 +64,13 @@ const lessonSlice = createSlice({
       // Submit
       .addCase(submitExercise.fulfilled, (state, action) => {
         state.currentResult = action.payload;
+      })
+      .addCase(createLesson.rejected, (state, action) => {
+        console.error("Ошибка создания урока:", action.payload || action.error);
+        state.error = action.error.message;
       });
+
+    
   },
 });
 
