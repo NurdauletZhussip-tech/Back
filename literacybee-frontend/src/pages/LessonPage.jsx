@@ -5,27 +5,29 @@ import { submitExercise } from '../store/lessonSlice';
 import api from '../api';
 
 const TYPE_CFG = {
-  phonics:     { emoji: '🔤', label: 'Фоника',   color: '#f97316', bg: '#fff7ed', border: '#fed7aa' },
-  sight_words: { emoji: '📖', label: 'Слова',     color: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe' },
-  image:       { emoji: '🖼️', label: 'Картинка', color: '#06b6d4', bg: '#ecfeff', border: '#a5f3fc' },
+  phonics:     { emoji: '🔤', label: 'Фоника',     color: '#f97316', bg: '#fff7ed', border: '#fed7aa' },
+  sight_words: { emoji: '📖', label: 'Слова',      color: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe' },
+  vocabulary:  { emoji: '🧠', label: 'Словарный',  color: '#06b6d4', bg: '#ecfeff', border: '#a5f3fc' },
+  handwriting: { emoji: '✍️', label: 'Письмо',     color: '#eab308', bg: '#fefce8', border: '#fde047' },
 };
+
 const CONFETTI_COLORS = ['#f97316','#8b5cf6','#06b6d4','#ec4899','#fcd34d','#34d399'];
 
 export default function LessonPage() {
   const { lessonId } = useParams();
-  const navigate     = useNavigate();
-  const dispatch     = useDispatch();
-  const { user }     = useSelector((s) => s.auth);
-  const childId      = user?.id;
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { user } = useSelector((s) => s.auth);
+  const childId = user?.id;
 
-  const [lesson,    setLesson]    = useState(null);
+  const [lesson, setLesson] = useState(null);
   const [exercises, setExercises] = useState([]);
-  const [selected,  setSelected]  = useState(null);
-  const [answer,    setAnswer]    = useState('');
-  const [loading,   setLoading]   = useState(true);
+  const [selected, setSelected] = useState(null);
+  const [answer, setAnswer] = useState('');
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [result,    setResult]    = useState(null);
-  const [shake,     setShake]     = useState(false);
+  const [result, setResult] = useState(null);
+  const [shake, setShake] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
 
   const [stars] = useState(() =>
@@ -35,21 +37,16 @@ export default function LessonPage() {
     }))
   );
 
-  // LessonPage.jsx — исправленный useEffect
-
   useEffect(() => {
     const loadLessonData = async () => {
       try {
         setLoading(true);
-        
         const [lessonRes, exRes] = await Promise.all([
-          api.get(`/lessons/${lessonId}`),                    // Получаем урок
-          api.get(`/lessons/${lessonId}/exercises`)           // Получаем упражнения
+          api.get(`/lessons/${lessonId}`),
+          api.get(`/lessons/${lessonId}/exercises`)
         ]);
 
         setLesson(lessonRes.data);
-        
-        // Важно: правильно обрабатываем ответ с упражнениями
         const exercisesData = exRes.data?.data || exRes.data || [];
         setExercises(exercisesData);
 
@@ -58,117 +55,94 @@ export default function LessonPage() {
         }
       } catch (err) {
         console.error('Ошибка загрузки урока:', err);
-        // Для отладки:
-        console.log("Lesson ID:", lessonId);
       } finally {
         setLoading(false);
       }
     };
 
-    if (lessonId) {
-      loadLessonData();
-    }
+    if (lessonId) loadLessonData();
   }, [lessonId]);
 
-  const refreshExercises = async () => {
+  const handleSubmit = async () => {
+    if (!selected || !answer.trim() || submitting) return;
+
+    setSubmitting(true);
+    setResult(null);
+
     try {
-      const res = await api.get(`/lessons/${lessonId}/exercises`);
-      const data = res.data || [];
-      setExercises(data);
-      return data;
-    } catch { return []; }
+      const res = await dispatch(submitExercise({
+        childId: user?.id,
+        exerciseId: selected.id,
+        answer: answer.trim(),
+      })).unwrap();
+
+      const xpEarned = res.xpEarned || 0;
+
+      setResult({ 
+        correct: res.isCorrect, 
+        xpEarned,
+        correctAnswer: selected.correct_answer 
+      });
+
+      setAnswer('');
+
+      if (res.isCorrect && xpEarned > 0) {
+        setCelebrate(true);
+        setTimeout(() => setCelebrate(false), 2500);
+      } else if (!res.isCorrect) {
+        setShake(true);
+        setTimeout(() => setShake(false), 600);
+      }
+
+      // Обновляем список упражнений
+      const fresh = await api.get(`/lessons/${lessonId}/exercises`);
+      const exercisesData = fresh.data?.data || fresh.data || [];
+      setExercises(exercisesData);
+
+    } catch (err) {
+      console.error("Ошибка отправки ответа:", err);
+      setResult({ error: true });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
- const handleSubmit = async () => {
-  if (!selected || !answer.trim()) return;
-
-  setSubmitting(true);
-  setResult(null);
-
-  try {
-    const res = await dispatch(submitExercise({
-      childId: user?.id,                    // ← Используем user.id из Redux
-      exerciseId: selected.id,
-      answer: answer.trim(),
-    })).unwrap();
-
-    setResult({ 
-      correct: res.isCorrect, 
-      xpEarned: res.xpEarned || (res.isCorrect ? selected.xp_value : 0),
-      correctAnswer: selected.correct_answer 
-    });
-
+  const pickEx = (ex) => {
+    setSelected(ex);
+    setResult(null);
     setAnswer('');
-
-    if (res.isCorrect) {
-      setCelebrate(true);
-      setTimeout(() => setCelebrate(false), 2500);
-    } else {
-      setShake(true);
-      setTimeout(() => setShake(false), 600);
-    }
-
-    // Перезагружаем упражнения после ответа
-    const fresh = await api.get(`/lessons/${lessonId}/exercises`);
-    const exercisesData = fresh.data?.data || fresh.data || [];
-    setExercises(exercisesData);
-
-    if (exercisesData.length > 0) {
-      const stillThere = exercisesData.find(e => e.id === selected.id);
-      if (stillThere) setSelected(stillThere);
-    }
-
-  } catch (err) {
-    console.error("Ошибка отправки ответа:", err);
-    setResult({ error: true });
-    
-    // Полезный лог для отладки
-    if (err.response?.status === 403) {
-      alert("Ошибка доступа. Проверьте, что вы вошли как этот ребёнок.");
-    }
-  } finally {
-    setSubmitting(false);
-  }
-};
-
-  const pickEx = (ex) => { setSelected(ex); setResult(null); setAnswer(''); };
+  };
 
   const cfg = TYPE_CFG[selected?.type] || TYPE_CFG.phonics;
 
-  const confetti = celebrate
-    ? Array.from({ length: 38 }, (_, i) => ({
-        id: i,
-        left: Math.random() * 100,
-        delay: Math.random() * .7,
-        dur: 1.4 + Math.random() * 1,
-        color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-      }))
-    : [];
-
-  if (loading) return (
-    <div className="loading-screen">
-      <div className="loading-orb" />
-      <div className="loading-text">Загружаем урок...</div>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="loading-screen">
+        <div className="loading-orb" />
+        <div className="loading-text">Загружаем урок...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-bg">
       <div className="stars-bg">
         {stars.map(s => (
           <div key={s.id} className="star-dot" style={{
-            top:`${s.top}%`, left:`${s.left}%`, width:s.size, height:s.size,
-            animationDuration:`${s.dur}s`, animationDelay:`${s.delay}s`,
+            top: `${s.top}%`, left: `${s.left}%`, width: s.size, height: s.size,
+            animationDuration: `${s.dur}s`, animationDelay: `${s.delay}s`,
           }} />
         ))}
       </div>
 
       {celebrate && (
         <div className="confetti-c">
-          {confetti.map(p => (
-            <div key={p.id} className="cp" style={{
-              left:`${p.left}%`, background:p.color,
-              animationDuration:`${p.dur}s`, animationDelay:`${p.delay}s`,
+          {Array.from({ length: 38 }, (_, i) => (
+            <div key={i} className="cp" style={{
+              left: `${Math.random() * 100}%`,
+              background: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+              animationDuration: `${1.4 + Math.random() * 1}s`,
+              animationDelay: `${Math.random() * 0.7}s`,
             }} />
           ))}
         </div>
@@ -192,7 +166,7 @@ export default function LessonPage() {
               return (
                 <div
                   key={ex.id}
-                  className={`ex-card${selected?.id === ex.id ? ' active' : ''}`}
+                  className={`ex-card ${selected?.id === ex.id ? 'active' : ''}`}
                   onClick={() => pickEx(ex)}
                 >
                   <div className="ex-icon">{t.emoji}</div>
@@ -206,46 +180,43 @@ export default function LessonPage() {
           </div>
         )}
 
-        {exercises.length === 0 && (
-          <div className="empty-state">😕 Упражнений пока нет</div>
-        )}
-
         {selected && (
-          <div className="main-card" key={selected.id}>
+          <div className="main-card">
             <div className="type-pill" style={{ background: cfg.bg, color: cfg.color, border: `1.5px solid ${cfg.border}` }}>
               {cfg.emoji} {cfg.label}
             </div>
 
             <div className="question-text">
-              {selected.question_data?.question || 'Введите ответ'}
+              {selected.question_data?.question}
             </div>
 
             {result && !result.error && (
               <div className={`result-banner ${result.correct ? 'correct' : 'wrong'}`}>
                 <div className="res-icon">{result.correct ? '🎉' : '💡'}</div>
                 <div>
-                  <div className="res-main">{result.correct ? 'Правильно!' : 'Почти!'}</div>
+                  <div className="res-main">{result.correct ? 'Правильно!' : 'Неправильно'}</div>
                   {!result.correct && (
                     <div className="res-sub">
-                      Правильный ответ: <b style={{ color: '#fff' }}>{result.correctAnswer}</b>
+                      Правильный ответ: <b>{result.correctAnswer}</b>
                     </div>
                   )}
                 </div>
-                {result.correct && <div className="xp-chip">+{result.xpEarned} XP ⚡</div>}
+                {result.xpEarned > 0 && (
+                  <div className="xp-chip">+{result.xpEarned} XP ⚡</div>
+                )}
               </div>
             )}
 
             <div className="answer-wrap">
               <input
-                className={`answer-input${shake ? ' shake' : ''}`}
+                className={`answer-input ${shake ? 'shake' : ''}`}
                 type="text"
                 value={answer}
                 onChange={e => setAnswer(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                placeholder="Напишите ответ..."
+                placeholder="Напиши ответ здесь..."
                 autoFocus
               />
-              {answer.trim() && <div className="enter-hint">↵ Enter</div>}
             </div>
 
             <button
