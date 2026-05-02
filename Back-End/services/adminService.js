@@ -1,78 +1,48 @@
-const prisma = require('../prismaClient');
+const LessonModel = require('../models/lessonModel');
 
 class AdminService {
-// services/adminService.js
   static async createLesson(data) {
-    let orderIndex = parseInt(data.order_index);
+    const orderIndex = data.order_index
+      ? parseInt(data.order_index)
+      : (await LessonModel.getMaxOrderIndex()) + 1;
 
-    if (!orderIndex || isNaN(orderIndex)) {
-      const maxLesson = await prisma.lessons.aggregate({
-        _max: { order_index: true }
-      });
-      orderIndex = (maxLesson._max.order_index || 0) + 1;
-    }
-
-    return await prisma.lessons.create({
-      data: {
-        title: data.title.trim(),
-        description: data.description ? data.description.trim() : '',
-        order_index: orderIndex,
-        xp_reward: parseInt(data.xp_reward) || 50,
-        unit_id: data.unit_id || null,
-        is_published: true,
-      }
+    return await LessonModel.create({
+      title: data.title.trim(),
+      description: data.description ? data.description.trim() : '',
+      order_index: orderIndex,
+      xp_reward: parseInt(data.xp_reward) || 50,
+      unit_id: data.unit_id || null,
+      is_published: true
     });
   }
 
-  // adminService.js
-static async getLessonsPaginated(query) {
-  const page = parseInt(query.page) || 1;
-  const limit = parseInt(query.limit) || 50;
+  static async getLessonsPaginated(query) {
+    const page = parseInt(query.page) || 1;
+    const limit = parseInt(query.limit) || 50;
+    const skip = (page - 1) * limit;
 
-  const [lessons, totalCount] = await Promise.all([
-    prisma.lessons.findMany({
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy: { order_index: 'asc' },
-      include: {
-        units: true 
+    const [lessons, totalCount] = await Promise.all([
+      LessonModel.findAll(skip, limit),
+      LessonModel.countPublished()
+    ]);
+
+    return {
+      data: lessons,
+      meta: {
+        totalItems: totalCount,
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / limit),
+        itemsPerPage: limit
       }
-    }),
-    prisma.lessons.count()
-  ]);
-
-  return {
-    data: lessons,
-    meta: {
-      totalItems: totalCount,
-      currentPage: page,
-      totalPages: Math.ceil(totalCount / limit),
-      itemsPerPage: limit
-    }
-  };
-}
+    };
+  }
 
   static async updateLesson(id, data) {
-    try {
-      return await prisma.lessons.update({
-        where: { id },
-        data
-      });
-    } catch (err) {
-      if (err.code === 'P2025') throw new Error('NOT_FOUND');
-      throw err;
-    }
+    return await LessonModel.update(id, data);
   }
 
   static async deleteLesson(id) {
-    try {
-      return await prisma.lessons.delete({
-        where: { id }
-      });
-    } catch (err) {
-      if (err.code === 'P2025') throw new Error('NOT_FOUND');
-      throw err;
-    }
+    return await LessonModel.delete(id);
   }
 }
 

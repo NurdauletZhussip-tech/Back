@@ -2,13 +2,13 @@ const AdminService = require('../services/adminService');
 
 class AdminController {
   static async getLessons(req, res) {
-  try {
-    const result = await AdminService.getLessonsPaginated(req.query);
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    try {
+      const result = await AdminService.getLessonsPaginated(req.query);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   }
-}
 
   static async createLesson(req, res) {
     try {
@@ -24,7 +24,9 @@ class AdminController {
       const updatedLesson = await AdminService.updateLesson(req.params.id, req.body);
       res.json(updatedLesson);
     } catch (err) {
-      if (err.message === 'NOT_FOUND') return res.status(404).json({ error: 'Урок не найден' });
+      if (err.message === 'NOT_FOUND') {
+        return res.status(404).json({ error: 'Урок не найден' });
+      }
       res.status(500).json({ error: err.message });
     }
   }
@@ -34,7 +36,9 @@ class AdminController {
       await AdminService.deleteLesson(req.params.id);
       res.json({ message: 'Урок успешно удален' });
     } catch (err) {
-      if (err.message === 'NOT_FOUND') return res.status(404).json({ error: 'Урок не найден' });
+      if (err.message === 'NOT_FOUND') {
+        return res.status(404).json({ error: 'Урок не найден' });
+      }
       res.status(500).json({ error: err.message });
     }
   }
