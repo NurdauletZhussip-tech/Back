@@ -1,33 +1,34 @@
-version: '3.8'
-
 services:
+
   db:
-    image: postgres:15
-    restart: always
+    image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: project_backEnd
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   app:
-    build: .
-    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env.docker
     ports:
-      - "3000:3000"
-    environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=admin
-      - DB_NAME=project_backEnd
-      - JWT_SECRET=supersecretkeychangeinproduction
-      - BCRYPT_ROUNDS=10
+      - "${PORT:-3000}:3000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   postgres_data:
