@@ -1,37 +1,10 @@
-const LessonService = require('../services/lessonService');
-const ProgressModel = require('../models/progressModel');
-const ExerciseModel = require('../models/exerciseModel');
-const AttemptModel = require('../models/attemptModel');
-const StreakModel = require('../models/streakModel');
-const GamificationService = require('../services/gamificationService');
+const ProgressService = require('../services/progressService');
 
 exports.getChildProgress = async (req, res) => {
   try {
     const { childId } = req.params;
-
-    const paginatedLessons = await LessonService.getAllLessonsPaginated(req.query);
-
-    const enrichedData = await Promise.all(paginatedLessons.data.map(async (lesson) => {
-      const progress = await ProgressModel.findByChildAndLesson(childId, lesson.id) ||
-                       { completed: false, score: 0 };
-
-      const exercises = await ExerciseModel.findByLessonId(lesson.id);
-      const attempts = await AttemptModel.getLastCorrectPerExercise(childId, lesson.id);
-      const completedCount = attempts.filter(a => a.last_correct === true).length;
-
-      return {
-        ...lesson,
-        progress,
-        totalExercises: exercises.length,
-        completedExercises: completedCount,
-        completionRate: progress.score || 0
-      };
-    }));
-
-    res.json({
-      data: enrichedData,
-      meta: paginatedLessons.meta
-    });
+    const result = await ProgressService.getChildProgress(childId, req.query);
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -40,16 +13,8 @@ exports.getChildProgress = async (req, res) => {
 exports.getChildDashboard = async (req, res) => {
   try {
     const { childId } = req.params;
-    const totalXp = await AttemptModel.sumXpByChild(childId);
-    const streak = await StreakModel.findByChild(childId) || { current_streak: 0, longest_streak: 0 };
-    const lessonsCompleted = await GamificationService.countCompletedLessons(childId);
-
-    res.json({
-      totalXp,
-      currentStreak: streak.current_streak,
-      longestStreak: streak.longest_streak,
-      lessonsCompleted
-    });
+    const result = await ProgressService.getChildDashboard(childId);
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
