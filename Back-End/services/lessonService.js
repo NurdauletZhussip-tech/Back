@@ -1,26 +1,19 @@
-const prisma = require('../prismaClient');
+const LessonModel = require('../models/lessonModel');
+const ExerciseModel = require('../models/exerciseModel');
+const ProgressModel = require('../models/progressModel');
+const AttemptModel = require('../models/attemptModel');
 const GamificationService = require('./gamificationService');
+const prisma = require('../prismaClient');
 
 class LessonService {
-
   static async getAllLessonsPaginated(query) {
     const page = parseInt(query.page) || 1;
-    const limit = parseInt(query.limit) || 20; 
+    const limit = parseInt(query.limit) || 20;
+    const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
-      prisma.lessons.findMany({
-        where: { is_published: true },
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { order_index: 'asc' },
-        include: {
-          units: true,          
-          exercises: {
-            orderBy: { order_index: 'asc' }
-          }
-        }
-      }),
-      prisma.lessons.count({ where: { is_published: true } })
+      LessonModel.findPublished(skip, limit),
+      LessonModel.countPublished()
     ]);
 
     return {
@@ -37,17 +30,27 @@ class LessonService {
   static async getExercisesPaginated(lessonId, query) {
     const page = parseInt(query.page) || 1;
     const limit = parseInt(query.limit) || 10;
+    const skip = (page - 1) * limit;
 
-    return await prisma.exercises.paginate({
-      page,
-      limit,
-      where: { lesson_id: lessonId },
-      orderBy: { order_index: 'asc' }
-    });
+    const [exercises, total] = await Promise.all([
+      ExerciseModel.findByLessonIdPaginated(lessonId, skip, limit),
+      ExerciseModel.countByLessonId(lessonId)
+    ]);
+
+    return {
+      data: exercises,
+      meta: {
+        totalItems: total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        itemsPerPage: limit
+      }
+    };
   }
 
   static async submitExercise(childId, exerciseId, answer) {
     return await prisma.$transaction(async (tx) => {
+      // Используем prisma transaction для атомарности операции
       const exercise = await tx.exercises.findUnique({
         where: { id: exerciseId }
       });
@@ -80,6 +83,7 @@ class LessonService {
 
       const lessonId = exercise.lesson_id;
 
+      // Пересчет прогресса
       const allExercises = await tx.exercises.findMany({
         where: { lesson_id: lessonId }
       });
@@ -117,11 +121,22 @@ class LessonService {
         }
       });
 
+      // Обновим gamification
       await GamificationService.updateStreak(childId);
       await GamificationService.refreshBadges(childId);
 
       return { isCorrect, xpEarned, newScore, isCompleted };
     });
+  }
+
+  static async getLessonById(lessonId) {
+    const lesson = await LessonModel.findByIdWithExercises(lessonId);
+    if (!lesson) throw new Error('NOT_FOUND');
+    return lesson;
+  }
+
+  static async getAllPublished() {
+    return await LessonModel.findAllPublished();
   }
 }
 

@@ -1,43 +1,33 @@
-
-const prisma = require('../prismaClient');
+const ExerciseModel = require('../models/exerciseModel');
 
 class ExerciseService {
   static async createExercise(lessonId, data) {
-    return await prisma.exercises.create({
-      data: {
-        lesson_id: lessonId,
-        type: data.type,
-        question_data: data.question_data,
-        correct_answer: data.correct_answer,
-        xp_value: data.xp_value || 10,
-        order_index: data.order_index || 0,
-      }
+    return await ExerciseModel.create({
+      lesson_id: lessonId,
+      type: data.type,
+      question_data: data.question_data,
+      correct_answer: data.correct_answer,
+      xp_value: data.xp_value || 10,
+      order_index: data.order_index || 0
     });
   }
 
   static async getExercisesByLesson(lessonId) {
-    return await prisma.exercises.findMany({
-      where: { lesson_id: lessonId },
-      orderBy: { order_index: 'asc' }
-    });
+    return await ExerciseModel.findByLessonId(lessonId);
   }
 
   static async updateExercise(id, data) {
-    try {
-      return await prisma.exercises.update({ where: { id }, data });
-    } catch (err) {
-      if (err.code === 'P2025') throw new Error('NOT_FOUND');
-      throw err;
-    }
+    return await ExerciseModel.update(id, data);
   }
 
   static async deleteExercise(id) {
-    try {
-      return await prisma.exercises.delete({ where: { id } });
-    } catch (err) {
-      if (err.code === 'P2025') throw new Error('NOT_FOUND');
-      throw err;
-    }
+    return await ExerciseModel.delete(id);
+  }
+
+  static async getExerciseById(id) {
+    const exercise = await ExerciseModel.findById(id);
+    if (!exercise) throw new Error('NOT_FOUND');
+    return exercise;
   }
 }
 

@@ -1,23 +1,22 @@
 const router = require('express').Router();
-const { getLessons, getExercisesByLesson, submitExercise,getLessonById } = require('../controllers/lessonController');
-const { getChildProgress, getChildDashboard } = require('../controllers/progressController');
+const LessonController = {
+  getLessons: require('../controllers/lessonController').getLessons,
+  getExercisesByLesson: require('../controllers/lessonController').getExercisesByLesson,
+  submitExercise: require('../controllers/lessonController').submitExercise,
+  getLessonById: require('../controllers/lessonController').getLessonById
+};
+const ProgressController = {
+  getChildProgress: require('../controllers/progressController').getChildProgress,
+  getChildDashboard: require('../controllers/progressController').getChildDashboard
+};
 const { authenticate, authorizeChildAccess } = require('../middleware/authMiddleware');
-const prisma = require('../prismaClient');
+const LessonService = require('../services/lessonService');
 
-router.get('/', authenticate, getLessons);
+router.get('/', authenticate, LessonController.getLessons);
 
 router.get('/all', authenticate, async (req, res) => {
   try {
-    const lessons = await prisma.lessons.findMany({
-      where: { is_published: true },
-      orderBy: { order_index: 'asc' },
-      include: {
-        units: true,
-        exercises: {
-          orderBy: { order_index: 'asc' }
-        }
-      }
-    });
+    const lessons = await LessonService.getAllPublished();
     res.json(lessons);
   } catch (err) {
     console.error('Ошибка /lessons/all:', err);
@@ -25,16 +24,13 @@ router.get('/all', authenticate, async (req, res) => {
   }
 });
 
-router.get('/:lessonId', authenticate, getLessonById);
+router.get('/:lessonId', authenticate, LessonController.getLessonById);
 
+router.get('/progress/:childId', authenticate, authorizeChildAccess, ProgressController.getChildProgress);
+router.get('/dashboard/:childId', authenticate, authorizeChildAccess, ProgressController.getChildDashboard);
 
+router.get('/:lessonId/exercises', authenticate, LessonController.getExercisesByLesson);
 
-
-router.get('/progress/:childId',  authenticate, authorizeChildAccess, getChildProgress);
-router.get('/dashboard/:childId', authenticate, authorizeChildAccess, getChildDashboard);
-
-router.get('/:lessonId/exercises', authenticate, getExercisesByLesson);
-
-router.post('/child/:childId/exercise/:exerciseId', authenticate, authorizeChildAccess, submitExercise);
+router.post('/child/:childId/exercise/:exerciseId', authenticate, authorizeChildAccess, LessonController.submitExercise);
 
 module.exports = router;

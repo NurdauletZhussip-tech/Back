@@ -1,4 +1,3 @@
-
 const UnitService = require('../services/unitService');
 
 class UnitController {
@@ -25,7 +24,9 @@ class UnitController {
       const unit = await UnitService.updateUnit(req.params.id, req.body);
       res.json(unit);
     } catch (err) {
-      if (err.message === 'NOT_FOUND') return res.status(404).json({ error: 'Юнит не найден' });
+      if (err.message === 'NOT_FOUND') {
+        return res.status(404).json({ error: 'Юнит не найден' });
+      }
       res.status(500).json({ error: err.message });
     }
   }
@@ -35,7 +36,9 @@ class UnitController {
       await UnitService.deleteUnit(req.params.id);
       res.json({ message: 'Юнит успешно удалён' });
     } catch (err) {
-      if (err.message === 'NOT_FOUND') return res.status(404).json({ error: 'Юнит не найден' });
+      if (err.message === 'NOT_FOUND') {
+        return res.status(404).json({ error: 'Юнит не найден' });
+      }
       res.status(500).json({ error: err.message });
     }
   }
