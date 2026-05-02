@@ -2,16 +2,36 @@ const prisma = require('../prismaClient');
 const GamificationService = require('./gamificationService');
 
 class LessonService {
+
   static async getAllLessonsPaginated(query) {
     const page = parseInt(query.page) || 1;
-    const limit = parseInt(query.limit) || 10;
+    const limit = parseInt(query.limit) || 20; 
 
-    return await prisma.lessons.paginate({
-      page,
-      limit,
-      where: { is_published: true },
-      orderBy: { order_index: 'asc' }
-    });
+    const [data, total] = await Promise.all([
+      prisma.lessons.findMany({
+        where: { is_published: true },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { order_index: 'asc' },
+        include: {
+          units: true,          
+          exercises: {
+            orderBy: { order_index: 'asc' }
+          }
+        }
+      }),
+      prisma.lessons.count({ where: { is_published: true } })
+    ]);
+
+    return {
+      data,
+      meta: {
+        totalItems: total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        itemsPerPage: limit
+      }
+    };
   }
 
   static async getExercisesPaginated(lessonId, query) {
@@ -34,8 +54,20 @@ class LessonService {
 
       if (!exercise) throw new Error('EXERCISE_NOT_FOUND');
 
+      const previousCorrectAttempt = await tx.exercise_attempts.findFirst({
+        where: {
+          child_id: childId,
+          exercise_id: exerciseId,
+          correct: true
+        }
+      });
+
       const isCorrect = answer.trim().toLowerCase() === exercise.correct_answer.trim().toLowerCase();
-      const xpEarned = isCorrect ? exercise.xp_value : 0;
+      let xpEarned = 0;
+      
+      if (isCorrect && !previousCorrectAttempt) {
+        xpEarned = exercise.xp_value || 10;
+      }
 
       await tx.exercise_attempts.create({
         data: {
@@ -88,7 +120,7 @@ class LessonService {
       await GamificationService.updateStreak(childId);
       await GamificationService.refreshBadges(childId);
 
-      return { isCorrect, newScore, isCompleted };
+      return { isCorrect, xpEarned, newScore, isCompleted };
     });
   }
 }
