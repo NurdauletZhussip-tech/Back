@@ -41,7 +41,7 @@ exports.authorizeChildAccess = async (req, res, next) => {
 
     console.log(`[authorizeChildAccess] Role: ${req.userRole}, TokenUserId: ${userIdFromToken}, ParamChildId: ${childIdFromUrl}`);
 
-    // === CHILD ===
+  
     if (req.userRole === 'child') {
       if (userIdFromToken === childIdFromUrl) {
         return next();
@@ -50,7 +50,7 @@ exports.authorizeChildAccess = async (req, res, next) => {
       return res.status(403).json({ error: 'Access denied to this child' });
     }
 
-    // === PARENT ===
+  
     if (req.userRole === 'parent') {
       const child = await UserModel.findById(childId);
       if (!child || String(child.parent_id) !== userIdFromToken) {
@@ -59,7 +59,7 @@ exports.authorizeChildAccess = async (req, res, next) => {
       return next();
     }
 
-    // === ADMIN (для удобства разработки) ===
+  
     if (req.userRole === 'admin') {
       return next();
     }

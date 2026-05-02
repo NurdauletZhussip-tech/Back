@@ -2,14 +2,13 @@ const AdminService = require('../services/adminService');
 
 class AdminController {
   static async getLessons(req, res) {
-    try {
-      // Используем тот же подход с передачей всего query
-      const result = await AdminService.getLessonsPaginated(req.query);
-      res.json(result);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
+  try {
+    const result = await AdminService.getLessonsPaginated(req.query);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
+}
 
   static async createLesson(req, res) {
     try {
