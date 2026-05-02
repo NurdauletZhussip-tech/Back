@@ -483,3 +483,78 @@ body {
 .child-btn-orange { background: rgba(249,115,22,.2); border: 1px solid rgba(249,115,22,.4); color: #fdba74; }
 .child-btn-orange:hover { background: rgba(249,115,22,.35); color: #fff; }
 .child-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.admin-container { padding: 40px; max-width: 1400px; margin: 0 auto; background: #0f172a; min-height: 100vh; color: #e2e8f0; }
+.admin-header { text-align: center; margin-bottom: 40px; }
+.admin-header h1 { font-size: 2.8rem; background: linear-gradient(135deg, #a5b4fc, #c4b5fd); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 24px; }
+.admin-card { 
+  background: #1e2937; 
+  border-radius: 20px; 
+  padding: 28px; 
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+  border: 1px solid #334155;
+}
+.admin-input, .admin-textarea {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: #334155;
+  border: 1px solid #475569;
+  border-radius: 12px;
+  color: white;
+}
+.admin-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 8px;
+}
+.admin-btn.blue { background: #3b82f6; }
+.admin-btn.green { background: #22c55e; }
+.admin-btn.purple { background: #8b5cf6; }
+.exercise-list { margin-top: 16px; }
+.exercise-item {
+  background: #334155;
+  padding: 14px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+.correct-answer { color: #4ade80; font-weight: bold; }
+
+.admin-fullscreen {
+  min-height: 100vh;
+  background: #0f172a;
+  padding: 30px 40px;
+  color: #e2e8f0;
+}
+
+.admin-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.admin-header h1 {
+  font-size: 2.8rem;
+  background: linear-gradient(135deg, #a5b4fc, #c4b5fd);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 24px;
+}
+
+.admin-card {
+  background: #1e2937;
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  border: 1px solid #334155;
+}
