@@ -6,11 +6,10 @@ const AuthController = require('../controllers/authController');
 const { authenticate, requireRole } = require('../middleware/authMiddleware');
 const UserModel = require('../models/userModel');
 
-// ====================== PARENT AUTH ======================
 router.post('/register', AuthController.registerParent);
 router.post('/login', AuthController.loginParent);
 
-// ====================== CHILDREN FOR PARENT ======================
+
 router.get('/children', authenticate, requireRole('parent'), async (req, res) => {
   try {
     const children = await UserModel.findChildrenByParent(req.userId);
@@ -23,7 +22,6 @@ router.get('/children', authenticate, requireRole('parent'), async (req, res) =>
 
 router.post('/children', authenticate, requireRole('parent'), AuthController.createChild);
 
-// ====================== CHILD LOGIN ======================
 router.post('/child/login', AuthController.loginChild);
 
 module.exports = router;
