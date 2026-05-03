@@ -156,6 +156,17 @@ model notifications {
   @@index([user_id], map: "idx_notifications_user")
 }
 
+model audit_log {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String?  @db.Uuid
+  action       String   // e.g. 'CREATE_LESSON', 'UPDATE_BADGE'
+  entity       String   // e.g. 'lesson', 'badge'
+  entity_id    String?  @db.Uuid
+  before       Json?
+  after        Json?
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+}
+
 enum badge_criteria_type {
   lessons_completed
   total_xp
