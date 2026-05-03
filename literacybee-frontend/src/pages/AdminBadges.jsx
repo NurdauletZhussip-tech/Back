@@ -44,7 +44,7 @@ export default function AdminBadges() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Удалить бейдж?')) return;
+    if (!window.confirm('Удалить бейдж?')) return; // Добавлено window.
     try {
       await api.delete(`/admin/badges/${id}`);
       addToast('Badge deleted');

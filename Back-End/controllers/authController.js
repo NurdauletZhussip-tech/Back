@@ -11,15 +11,12 @@ exports.registerParent = async (req, res) => {
       return res.status(400).json({ error: 'Missing fields: email, password, name' });
     }
     const result = await AuthService.registerParent(email, password, name);
-    // Set refresh token in httpOnly cookie
     try {
       const refreshToken = result.refreshToken;
       const days = parseInt(process.env.REFRESH_TOKEN_DAYS) || 30;
       res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: days * 24 * 60 * 60 * 1000 });
     } catch (e) {
-      // ignore cookie set errors
     }
-    // Do not return refresh token in body
     res.status(201).json({ user: result.user, token: result.token });
   } catch (err) {
     if (err.message === 'EMAIL_EXISTS') {
