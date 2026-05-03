@@ -1,6 +1,7 @@
 const AdminService = require('../services/adminService');
 const AuditLogService = require('../services/auditLogService');
 const LessonModel = require('../models/lessonModel');
+const BadgeService = require('../services/badgeService');
 
 class AdminController {
   static async getLessons(req, res) {
@@ -67,6 +68,81 @@ class AdminController {
       if (err.message === 'NOT_FOUND') {
         return res.status(404).json({ error: 'Урок не найден' });
       }
+      res.status(500).json({ error: err.message });
+    }
+  }
+
+  static async createBadge(req, res) {
+    try {
+      const data = req.body;
+      const badge = await BadgeService.createBadge(data);
+      await AuditLogService.log({
+        userId: req.userId,
+        action: 'CREATE_BADGE',
+        entity: 'badge',
+        entityId: badge.id,
+        before: null,
+        after: badge
+      });
+      res.status(201).json(badge);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+
+  static async listBadges(req, res) {
+    try {
+      const badges = await BadgeService.listBadges();
+      res.json(badges);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+
+  static async getBadge(req, res) {
+    try {
+      const badge = await BadgeService.getBadgeById(req.params.id);
+      if (!badge) return res.status(404).json({ error: 'Badge not found' });
+      res.json(badge);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+
+  static async updateBadge(req, res) {
+    try {
+      const before = await BadgeService.getBadgeById(req.params.id);
+      if (!before) return res.status(404).json({ error: 'Badge not found' });
+      const updated = await BadgeService.updateBadge(req.params.id, req.body);
+      await AuditLogService.log({
+        userId: req.userId,
+        action: 'UPDATE_BADGE',
+        entity: 'badge',
+        entityId: req.params.id,
+        before,
+        after: updated
+      });
+      res.json(updated);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+
+  static async deleteBadge(req, res) {
+    try {
+      const before = await BadgeService.getBadgeById(req.params.id);
+      if (!before) return res.status(404).json({ error: 'Badge not found' });
+      await BadgeService.deleteBadge(req.params.id);
+      await AuditLogService.log({
+        userId: req.userId,
+        action: 'DELETE_BADGE',
+        entity: 'badge',
+        entityId: req.params.id,
+        before,
+        after: null
+      });
+      res.json({ message: 'Badge deleted' });
+    } catch (err) {
       res.status(500).json({ error: err.message });
     }
   }

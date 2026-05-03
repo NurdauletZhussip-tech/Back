@@ -3,8 +3,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchChildren, createChild } from '../store/childSlice';
 import { logout, loginChild } from '../store/authSlice';
 import { useNavigate, Link } from 'react-router-dom';
+import { useToast } from '../components/ToastProvider';
+import PinModal from '../components/PinModal';
 
 export default function ParentDashboard() {
+  const addToast = useToast();
   const dispatch  = useDispatch();
   const navigate  = useNavigate();
   const { children } = useSelector((state) => state.child);
@@ -13,26 +16,33 @@ export default function ParentDashboard() {
   const [newChildName, setNewChildName] = useState('');
   const [newChildPin,  setNewChildPin]  = useState('');
   const [loggingInId,  setLoggingInId]  = useState(null);
+  const [pinModalOpen, setPinModalOpen] = useState(false);
+  const [pendingChild, setPendingChild] = useState(null);
 
   useEffect(() => { dispatch(fetchChildren()); }, [dispatch]);
 
   const handleCreateChild = async () => {
-    if (!newChildName || !newChildPin) return alert('Введите имя и PIN');
+    if (!newChildName || !newChildPin) { addToast('Введите имя и PIN'); return; }
     try {
       await dispatch(createChild({ name: newChildName, pin: newChildPin })).unwrap();
       setNewChildName(''); setNewChildPin('');
-    } catch { alert('Ошибка создания ребёнка'); }
+    } catch { addToast('Ошибка создания ребёнка'); }
   };
 
-  const handleLoginAsChild = async (childId, name) => {
-    const pin = prompt(`Введите PIN для ${name}:`);
-    if (!pin) return;
-    setLoggingInId(childId);
+  const handleOpenLoginModal = (child) => {
+    setPendingChild(child);
+    setPinModalOpen(true);
+  };
+
+  const handleLoginAsChild = async (pin) => {
+    if (!pin || !pendingChild) { setPinModalOpen(false); return; }
+    setPinModalOpen(false);
+    setLoggingInId(pendingChild.id);
     try {
-      await dispatch(loginChild({ childId, pin })).unwrap();
+      await dispatch(loginChild({ childId: pendingChild.id, pin })).unwrap();
       navigate('/child/dashboard');
-    } catch { alert('Неверный PIN'); }
-    finally { setLoggingInId(null); }
+    } catch { addToast('Неверный PIN'); }
+    finally { setLoggingInId(null); setPendingChild(null); }
   };
 
   return (
@@ -92,7 +102,7 @@ export default function ParentDashboard() {
                   <button
                     className="child-btn child-btn-orange"
                     disabled={loggingInId === child.id}
-                    onClick={() => handleLoginAsChild(child.id, child.name)}
+                    onClick={() => handleOpenLoginModal(child)}
                   >
                     {loggingInId === child.id ? 'Входим...' : '🚀 Войти как ребёнок'}
                   </button>
@@ -101,6 +111,7 @@ export default function ParentDashboard() {
             ))
           )}
         </div>
+      <PinModal open={pinModalOpen} onClose={() => setPinModalOpen(false)} childName={pendingChild?.name} onConfirm={handleLoginAsChild} />
       </div>
     </div>
   );

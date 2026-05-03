@@ -49,53 +49,25 @@ class LessonService {
   }
 
   static async submitExercise(childId, exerciseId, answer) {
-    return await prisma.$transaction(async (tx) => {
-      // Используем prisma transaction для атомарности операции
-      const exercise = await tx.exercises.findUnique({
-        where: { id: exerciseId }
-      });
-
+    // First, perform DB changes inside a transaction
+    const txResult = await prisma.$transaction(async (tx) => {
+      const exercise = await tx.exercises.findUnique({ where: { id: exerciseId } });
       if (!exercise) throw new Error('EXERCISE_NOT_FOUND');
 
       const previousCorrectAttempt = await tx.exercise_attempts.findFirst({
-        where: {
-          child_id: childId,
-          exercise_id: exerciseId,
-          correct: true
-        }
+        where: { child_id: childId, exercise_id: exerciseId, correct: true }
       });
 
       const isCorrect = answer.trim().toLowerCase() === exercise.correct_answer.trim().toLowerCase();
       let xpEarned = 0;
-      
-      if (isCorrect && !previousCorrectAttempt) {
-        xpEarned = exercise.xp_value || 10;
-      }
+      if (isCorrect && !previousCorrectAttempt) xpEarned = exercise.xp_value || 10;
 
-      await tx.exercise_attempts.create({
-        data: {
-          child_id: childId,
-          exercise_id: exerciseId,
-          correct: isCorrect,
-          xp_earned: xpEarned
-        }
-      });
+      await tx.exercise_attempts.create({ data: { child_id: childId, exercise_id: exerciseId, correct: isCorrect, xp_earned: xpEarned } });
 
       const lessonId = exercise.lesson_id;
 
-      // Пересчет прогресса
-      const allExercises = await tx.exercises.findMany({
-        where: { lesson_id: lessonId }
-      });
-
-      const attempts = await Promise.all(
-        allExercises.map(ex =>
-          tx.exercise_attempts.findFirst({
-            where: { child_id: childId, exercise_id: ex.id },
-            orderBy: { attempted_at: 'desc' }
-          })
-        )
-      );
+      const allExercises = await tx.exercises.findMany({ where: { lesson_id: lessonId } });
+      const attempts = await Promise.all(allExercises.map(ex => tx.exercise_attempts.findFirst({ where: { child_id: childId, exercise_id: ex.id }, orderBy: { attempted_at: 'desc' } })));
 
       const correctCount = attempts.filter(a => a?.correct === true).length;
       const total = allExercises.length;
@@ -103,30 +75,24 @@ class LessonService {
       const isCompleted = newScore >= 80;
 
       await tx.progress.upsert({
-        where: {
-          child_id_lesson_id: { child_id: childId, lesson_id: lessonId }
-        },
-        update: {
-          score: newScore,
-          completed: isCompleted,
-          completed_at: isCompleted ? new Date() : null,
-          updated_at: new Date()
-        },
-        create: {
-          child_id: childId,
-          lesson_id: lessonId,
-          score: newScore,
-          completed: isCompleted,
-          completed_at: isCompleted ? new Date() : null
-        }
+        where: { child_id_lesson_id: { child_id: childId, lesson_id: lessonId } },
+        update: { score: newScore, completed: isCompleted, completed_at: isCompleted ? new Date() : null, updated_at: new Date() },
+        create: { child_id: childId, lesson_id: lessonId, score: newScore, completed: isCompleted, completed_at: isCompleted ? new Date() : null }
       });
 
-      // Обновим gamification
-      await GamificationService.updateStreak(childId);
-      await GamificationService.refreshBadges(childId);
-
-      return { isCorrect, xpEarned, newScore, isCompleted };
+      return { isCorrect, xpEarned, newScore, isCompleted, childId };
     });
+
+    // Run gamification tasks after transaction commit to keep tx short
+    try {
+      await GamificationService.updateStreak(txResult.childId);
+      await GamificationService.refreshBadges(txResult.childId);
+    } catch (e) {
+      // Do not fail the main flow if gamification fails; log and continue
+      console.error('Gamification update failed:', e);
+    }
+
+    return { isCorrect: txResult.isCorrect, xpEarned: txResult.xpEarned, newScore: txResult.newScore, isCompleted: txResult.isCompleted };
   }
 
   static async getLessonById(lessonId) {

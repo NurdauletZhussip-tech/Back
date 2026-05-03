@@ -5,7 +5,6 @@ class AuditLogService {
     try {
       await AuditLogModel.create({ userId, action, entity, entityId, before, after });
     } catch (err) {
-      // Не выбрасываем ошибку наружу, чтобы не ломать основной flow
       console.error('AuditLog error:', err.message);
     }
   }

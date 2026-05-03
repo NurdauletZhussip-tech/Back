@@ -31,6 +31,15 @@ router.get('/dashboard/:childId', authenticate, authorizeChildAccess, ProgressCo
 
 router.get('/:lessonId/exercises', authenticate, LessonController.getExercisesByLesson);
 
-router.post('/child/:childId/exercise/:exerciseId', authenticate, authorizeChildAccess, LessonController.submitExercise);
+const { body, param } = require('express-validator');
+const { runValidation } = require('../middleware/validation');
+
+router.post('/child/:childId/exercise/:exerciseId', authenticate, authorizeChildAccess,
+  param('childId').notEmpty(),
+  param('exerciseId').notEmpty(),
+  body('answer').notEmpty().withMessage('Answer required'),
+  runValidation,
+  LessonController.submitExercise
+);
 
 module.exports = router;

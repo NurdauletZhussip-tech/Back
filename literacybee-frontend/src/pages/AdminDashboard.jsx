@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import api from '../api';
+import { useToast } from '../components/ToastProvider';
 
 export default function AdminDashboard() {
+  const addToast = useToast();
   const [units, setUnits] = useState([]);
   const [lessons, setLessons] = useState([]);
   const [currentExercises, setCurrentExercises] = useState([]);
@@ -61,36 +63,36 @@ export default function AdminDashboard() {
   // Создание
   const handleCreateUnit = async (e) => {
     e.preventDefault();
-    if (!unitForm.title.trim()) return alert("Название юнита обязательно");
+    if (!unitForm.title.trim()) { addToast("Название юнита обязательно"); return; }
     try {
       await api.post('/admin/units', unitForm);
-      alert("✅ Юнит создан!");
+      addToast("✅ Юнит создан!");
       setUnitForm({ title: '', description: '', order_index: '' });
       fetchUnits();
     } catch (err) {
-      alert("Ошибка: " + (err.response?.data?.error || err.message));
+      addToast("Ошибка: " + (err.response?.data?.error || err.message));
     }
   };
 
   const handleCreateLesson = async (e) => {
     e.preventDefault();
-    if (!lessonForm.title.trim() || !lessonForm.unit_id) return alert("Заполните название и выберите юнит");
+    if (!lessonForm.title.trim() || !lessonForm.unit_id) { addToast("Заполните название и выберите юнит"); return; }
     try {
       await api.post('/admin/lessons', lessonForm);
-      alert("✅ Урок создан!");
+      addToast("✅ Урок создан!");
       setLessonForm({ title: '', description: '', xp_reward: 50, unit_id: lessonForm.unit_id });
       fetchLessons();
     } catch (err) {
-      alert("Ошибка: " + (err.response?.data?.error || err.message));
+      addToast("Ошибка: " + (err.response?.data?.error || err.message));
     }
   };
 
   const handleCreateExercise = async (e) => {
     e.preventDefault();
-    if (!selectedLessonId) return alert("Выберите урок!");
+    if (!selectedLessonId) { addToast("Выберите урок!"); return; }
     try {
       await api.post(`/admin/lessons/${selectedLessonId}/exercises`, exerciseForm);
-      alert("✅ Упражнение добавлено!");
+      addToast("✅ Упражнение добавлено!");
       fetchExercises(selectedLessonId);
       setExerciseForm({
         type: 'phonics',
@@ -100,7 +102,7 @@ export default function AdminDashboard() {
         order_index: currentExercises.length + 1,
       });
     } catch (err) {
-      alert("Ошибка: " + (err.response?.data?.error || err.message));
+      addToast("Ошибка: " + (err.response?.data?.error || err.message));
     }
   };
 

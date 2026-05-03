@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store/store';
+import ToastProvider from './components/ToastProvider';
 import Landing        from './pages/Landing.jsx';
 import Register       from './pages/Register.jsx';
 import Login          from './pages/Login.jsx';
@@ -11,9 +12,12 @@ import LessonPage      from './pages/LessonPage.jsx';
 import ProgressPage    from './pages/ProgressPage.jsx';
 import PrivateRoute    from './components/PrivateRoute.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
+import AdminBadges from './pages/AdminBadges.jsx';
+import Badges from './pages/Badges.jsx';
 function App() {
   return (
     <Provider store={store}>
+      <ToastProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/"             element={<Landing />} />
@@ -39,8 +43,15 @@ function App() {
          <AdminDashboard />
        </PrivateRoute>
      } />
+          <Route path="/admin/badges" element={
+            <PrivateRoute allowedRoles={['admin']}>
+              <AdminBadges />
+            </PrivateRoute>
+          } />
+          <Route path="/badges" element={<Badges />} />
         </Routes>
       </BrowserRouter>
+      </ToastProvider>
     </Provider>
   );
 }

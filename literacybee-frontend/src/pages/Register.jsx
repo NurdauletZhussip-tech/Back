@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { registerParent } from '../store/authSlice';
 import { useNavigate, Link } from 'react-router-dom';
+import { useToast } from '../components/ToastProvider';
 
 export default function Register() {
+  const addToast = useToast();
   const [name, setName]         = useState('');
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
@@ -18,7 +20,7 @@ export default function Register() {
       await dispatch(registerParent({ email, password, name })).unwrap();
       navigate('/parent/dashboard');
     } catch (err) {
-      alert(err.message || 'Ошибка регистрации');
+      addToast(err.message || 'Ошибка регистрации');
     } finally {
       setLoading(false);
     }

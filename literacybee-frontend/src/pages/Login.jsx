@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { loginParent } from '../store/authSlice';
 import { useNavigate, Link } from 'react-router-dom';
+import { useToast } from '../components/ToastProvider';
 
 export default function Login() {
+  const addToast = useToast();
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading]   = useState(false);
@@ -25,7 +27,7 @@ export default function Login() {
       }
 
     } catch {
-      alert('Неверный email или пароль');
+      addToast('Неверный email или пароль');
     } finally {
       setLoading(false);
     }

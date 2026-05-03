@@ -1,15 +1,18 @@
 require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const adminRoutes = require('./routes/adminRoutes');
 const authRoutes = require('./routes/authRoutes');
 const lessonRoutes = require('./routes/lessonRoutes');
+const badgeRoutes = require('./routes/badgeRoutes');
 const app = express();
 
 app.use(helmet());
-app.use(cors());
+app.use(cors({ origin: process.env.FRONTEND_ORIGIN || 'http://localhost:3000', credentials: true }));
+app.use(cookieParser());
 app.use(express.json());
 app.use('/api/admin', adminRoutes);
 
@@ -31,6 +34,11 @@ app.use('/api/admin', limiter);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/lessons', lessonRoutes);
+app.use('/api/badges', badgeRoutes);
+
+// centralized error handler (must be after routes)
+const errorHandler = require('./middleware/errorHandler');
+app.use(errorHandler);
 
 app.use('/api/parents', authRoutes);
 

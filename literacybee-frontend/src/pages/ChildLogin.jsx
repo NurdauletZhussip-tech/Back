@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { loginChild } from '../store/authSlice';
 import { useNavigate, Link } from 'react-router-dom';
+import { useToast } from '../components/ToastProvider';
 
 export default function ChildLogin() {
+  const addToast = useToast();
   const [childId, setChildId] = useState('');
   const [pin, setPin]         = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,7 +19,7 @@ export default function ChildLogin() {
       await dispatch(loginChild({ childId, pin })).unwrap();
       navigate('/child/dashboard');
     } catch {
-      alert('Неверный ID или PIN');
+      addToast('Неверный ID или PIN');
     } finally {
       setLoading(false);
     }
