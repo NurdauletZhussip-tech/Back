@@ -5,7 +5,6 @@ const router = express.Router();
 const { body } = require('express-validator');
 const AuthController = require('../controllers/authController');
 const { authenticate, requireRole } = require('../middleware/authMiddleware');
-const UserModel = require('../models/userModel');
 const { runValidation } = require('../middleware/validation');
 
 router.post('/register',
@@ -23,16 +22,9 @@ router.post('/login',
   AuthController.loginParent
 );
 
+router.get('/verify-email', AuthController.verifyEmail);
 
-router.get('/children', authenticate, requireRole('parent'), async (req, res) => {
-  try {
-    const children = await UserModel.findChildrenByParent(req.userId);
-    res.json(children || []);
-  } catch (err) {
-    console.error('Error fetching children:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+router.get('/children', authenticate, requireRole('parent'), AuthController.listChildren);
 
 router.post('/children', authenticate, requireRole('parent'),
   body('name').notEmpty().withMessage('name required'),
@@ -41,12 +33,14 @@ router.post('/children', authenticate, requireRole('parent'),
   AuthController.createChild
 );
 
-router.post('/child/login', AuthController.loginChild);
+router.post('/child/login',
+  body('childId').notEmpty().withMessage('childId required'),
+  body('pin').notEmpty().withMessage('pin required'),
+  runValidation,
+  AuthController.loginChild
+);
 
-// Refresh access token
 router.post('/refresh', AuthController.refreshToken);
-
-// Logout (revoke refresh token)
 router.post('/logout', AuthController.logout);
 
 
