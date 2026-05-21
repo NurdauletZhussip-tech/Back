@@ -11,13 +11,13 @@ router.use(authenticate, requireRole('admin'));
 
 router.post('/units', UnitController.create);
 router.get('/units', UnitController.getAll);
-router.put('/units/:id', UnitController.update);
-router.delete('/units/:id', UnitController.delete);
+router.put('/units/:id', param('id').notEmpty(), runValidation, UnitController.update);
+router.delete('/units/:id', param('id').notEmpty(), runValidation, UnitController.delete);
 
 router.post('/lessons', AdminController.createLesson);
 router.get('/lessons', AdminController.getLessons);
-router.put('/lessons/:id', AdminController.updateLesson);
-router.delete('/lessons/:id', AdminController.deleteLesson);
+router.put('/lessons/:id', param('id').notEmpty(), runValidation, AdminController.updateLesson);
+router.delete('/lessons/:id', param('id').notEmpty(), runValidation, AdminController.deleteLesson);
 
 router.post('/badges',
   body('name').notEmpty().withMessage('name required'),
@@ -28,7 +28,7 @@ router.post('/badges',
 );
 
 router.get('/badges', AdminController.listBadges);
-router.get('/badges/:id', AdminController.getBadge);
+router.get('/badges/:id', param('id').notEmpty(), runValidation, AdminController.getBadge);
 router.put('/badges/:id',
   param('id').notEmpty(),
   body('name').optional().notEmpty(),
@@ -37,14 +37,11 @@ router.put('/badges/:id',
   runValidation,
   AdminController.updateBadge
 );
-router.delete('/badges/:id', AdminController.deleteBadge);
-router.get('/badges/:id', AdminController.getBadge);
-router.put('/badges/:id', AdminController.updateBadge);
-router.delete('/badges/:id', AdminController.deleteBadge);
+router.delete('/badges/:id', param('id').notEmpty(), runValidation, AdminController.deleteBadge);
 
-router.post('/lessons/:lessonId/exercises', ExerciseController.create);
-router.get('/lessons/:lessonId/exercises', ExerciseController.getByLesson);
-router.put('/exercises/:id', ExerciseController.update);
-router.delete('/exercises/:id', ExerciseController.delete);
+router.post('/lessons/:lessonId/exercises', param('lessonId').notEmpty(), runValidation, ExerciseController.create);
+router.get('/lessons/:lessonId/exercises', param('lessonId').notEmpty(), runValidation, ExerciseController.getByLesson);
+router.put('/exercises/:id', param('id').notEmpty(), runValidation, ExerciseController.update);
+router.delete('/exercises/:id', param('id').notEmpty(), runValidation, ExerciseController.delete);
 
 module.exports = router;
