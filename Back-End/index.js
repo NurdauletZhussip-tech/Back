@@ -2,12 +2,13 @@ require('dotenv').config();
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
-const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const adminRoutes = require('./routes/adminRoutes');
 const authRoutes = require('./routes/authRoutes');
 const lessonRoutes = require('./routes/lessonRoutes');
 const badgeRoutes = require('./routes/badgeRoutes');
+const leaderboardRoutes = require('./routes/leaderboardRoutes');
+const { apiLimiter, authUserLimiter } = require('./middleware/rateLimiters');
 const app = express();
 
 app.use(cors({
@@ -22,31 +23,18 @@ app.use(helmet({
 app.use(cookieParser());
 app.use(express.json());
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 500,
-  message: { error: 'Too many requests, please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: { error: 'Too many auth requests, please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-app.use('/api/auth', authLimiter);
-app.use('/api/lessons', limiter);
-app.use('/api/admin', limiter);
-app.use('/api/badges', limiter);
+app.use('/api/auth', authUserLimiter);
+app.use('/api/lessons', apiLimiter);
+app.use('/api/admin', apiLimiter);
+app.use('/api/badges', apiLimiter);
+app.use('/api/leaderboard', apiLimiter);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/parents', authRoutes);
 app.use('/api/lessons', lessonRoutes);
 app.use('/api/badges', badgeRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/leaderboard', leaderboardRoutes);
 
 app.get('/', (req, res) => {
   res.json({ 

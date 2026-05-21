@@ -3,6 +3,8 @@ const ExerciseModel = require('../models/exerciseModel');
 const ProgressModel = require('../models/progressModel');
 const AttemptModel = require('../models/attemptModel');
 const GamificationService = require('./gamificationService');
+const AdaptiveDifficultyService = require('./adaptiveDifficultyService');
+const LeaderboardService = require('./leaderboardService');
 const prisma = require('../prismaClient');
 
 class LessonService {
@@ -48,6 +50,25 @@ class LessonService {
     };
   }
 
+  static async getAdaptiveExercisesPaginated(lessonId, childId, query) {
+    const page = parseInt(query.page) || 1;
+    const limit = parseInt(query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const result = await AdaptiveDifficultyService.getAdaptiveExercises(lessonId, childId, { skip, take: limit });
+
+    return {
+      data: result.data,
+      recommendedDifficulty: result.recommendedDifficulty,
+      meta: {
+        totalItems: result.total,
+        currentPage: page,
+        totalPages: Math.ceil(result.total / limit),
+        itemsPerPage: limit
+      }
+    };
+  }
+
   static async submitExercise(childId, exerciseId, answer) {
     // First, perform DB changes inside a transaction
     const txResult = await prisma.$transaction(async (tx) => {
@@ -87,12 +108,21 @@ class LessonService {
     try {
       await GamificationService.updateStreak(txResult.childId);
       await GamificationService.refreshBadges(txResult.childId);
+      await LeaderboardService.invalidate();
     } catch (e) {
       // Do not fail the main flow if gamification fails; log and continue
       console.error('Gamification update failed:', e);
     }
 
-    return { isCorrect: txResult.isCorrect, xpEarned: txResult.xpEarned, newScore: txResult.newScore, isCompleted: txResult.isCompleted };
+    const recommendedDifficulty = await AdaptiveDifficultyService.getRecommendedDifficulty(childId);
+
+    return {
+      isCorrect: txResult.isCorrect,
+      xpEarned: txResult.xpEarned,
+      newScore: txResult.newScore,
+      isCompleted: txResult.isCompleted,
+      recommendedDifficulty
+    };
   }
 
   static async getLessonById(lessonId) {

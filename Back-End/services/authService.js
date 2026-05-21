@@ -155,10 +155,10 @@ class AuthService {
     return await UserModel.updatePassword(user.id, hashedPassword);
   }
 
-  static async createChild({ parentId, name, pin }) {
+  static async createChild({ parentId, name, pin, dateOfBirth }) {
     const saltRounds = parseInt(process.env.BCRYPT_ROUNDS, 10) || 10;
     const hashedPin = await bcrypt.hash(pin, saltRounds);
-    const child = await UserModel.createChild({ parentId, name, pinHash: hashedPin });
+    const child = await UserModel.createChild({ parentId, name, pinHash: hashedPin, dateOfBirth });
     return child;
   }
 

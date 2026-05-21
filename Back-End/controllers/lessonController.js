@@ -9,12 +9,18 @@ exports.getLessons = asyncHandler(async (req, res) => {
 
 exports.getAllPublished = asyncHandler(async (req, res) => {
   const lessons = await LessonService.getAllPublished();
-  res.json(lessons);
+  sendCachedJson(req, res, lessons, 300);
 });
 
 exports.getExercisesByLesson = asyncHandler(async (req, res) => {
   const { lessonId } = req.params;
   const result = await LessonService.getExercisesPaginated(lessonId, req.query);
+  sendCachedJson(req, res, result, 300);
+});
+
+exports.getAdaptiveExercisesByLesson = asyncHandler(async (req, res) => {
+  const { lessonId, childId } = req.params;
+  const result = await LessonService.getAdaptiveExercisesPaginated(lessonId, childId, req.query);
   res.json(result);
 });
 

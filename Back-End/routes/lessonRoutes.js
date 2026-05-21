@@ -3,6 +3,7 @@ const { body, param } = require('express-validator');
 const LessonController = require('../controllers/lessonController');
 const ProgressController = require('../controllers/progressController');
 const { authenticate, authorizeChildAccess } = require('../middleware/authMiddleware');
+const { exerciseSubmissionLimiter } = require('../middleware/rateLimiters');
 const { runValidation } = require('../middleware/validation');
 
 router.use(authenticate);
@@ -27,6 +28,14 @@ router.get(
 );
 
 router.get('/:lessonId/exercises', param('lessonId').notEmpty(), runValidation, LessonController.getExercisesByLesson);
+router.get(
+  '/:lessonId/adaptive/:childId/exercises',
+  param('lessonId').notEmpty(),
+  param('childId').notEmpty(),
+  runValidation,
+  authorizeChildAccess,
+  LessonController.getAdaptiveExercisesByLesson
+);
 router.get('/:lessonId', param('lessonId').notEmpty(), runValidation, LessonController.getLessonById);
 
 router.post(
@@ -36,6 +45,7 @@ router.post(
   body('answer').notEmpty().withMessage('Answer required'),
   runValidation,
   authorizeChildAccess,
+  exerciseSubmissionLimiter,
   LessonController.submitExercise
 );
 

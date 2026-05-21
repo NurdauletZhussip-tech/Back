@@ -38,6 +38,7 @@ model exercises {
   type              exercise_type
   question_data     Json
   correct_answer    String
+  difficulty        Int?                @default(1)
   xp_value          Int?                @default(10)
   order_index       Int
   created_at        DateTime?           @default(now()) @db.Timestamptz(6)
@@ -58,6 +59,7 @@ model users {
   role          user_role
   parent_id     String?   @db.Uuid
   name          String    @db.VarChar(255)
+  date_of_birth DateTime? @db.Date
   pin           String?   @db.VarChar(255)
   avatar_url    String?
   created_at    DateTime  @default(now()) @db.Timestamptz(6)

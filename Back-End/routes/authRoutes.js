@@ -48,6 +48,7 @@ router.get('/children', authenticate, requireRole('parent'), AuthController.list
 router.post('/children', authenticate, requireRole('parent'),
   body('name').notEmpty().withMessage('name required'),
   body('pin').isLength({ min: 4 }).withMessage('pin too short'),
+  body('dateOfBirth').optional().isISO8601().withMessage('dateOfBirth must be an ISO date'),
   runValidation,
   AuthController.createChild
 );

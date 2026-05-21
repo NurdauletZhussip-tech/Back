@@ -39,9 +39,19 @@ router.put('/badges/:id',
 );
 router.delete('/badges/:id', param('id').notEmpty(), runValidation, AdminController.deleteBadge);
 
-router.post('/lessons/:lessonId/exercises', param('lessonId').notEmpty(), runValidation, ExerciseController.create);
+router.post('/lessons/:lessonId/exercises',
+  param('lessonId').notEmpty(),
+  body('difficulty').optional().isInt({ min: 1, max: 5 }).withMessage('difficulty must be between 1 and 5'),
+  runValidation,
+  ExerciseController.create
+);
 router.get('/lessons/:lessonId/exercises', param('lessonId').notEmpty(), runValidation, ExerciseController.getByLesson);
-router.put('/exercises/:id', param('id').notEmpty(), runValidation, ExerciseController.update);
+router.put('/exercises/:id',
+  param('id').notEmpty(),
+  body('difficulty').optional().isInt({ min: 1, max: 5 }).withMessage('difficulty must be between 1 and 5'),
+  runValidation,
+  ExerciseController.update
+);
 router.delete('/exercises/:id', param('id').notEmpty(), runValidation, ExerciseController.delete);
 
 module.exports = router;

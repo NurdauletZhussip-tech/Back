@@ -18,6 +18,7 @@ class UserModel {
         role: true,
         parent_id: true,
         name: true,
+        date_of_birth: true,
         pin: true,
         avatar_url: true
       }
@@ -31,10 +32,11 @@ class UserModel {
         role: 'child'
       },
       select: {
-        id: true,
-        name: true,
-        avatar_url: true,
-        created_at: true
+          id: true,
+          name: true,
+          date_of_birth: true,
+          avatar_url: true,
+          created_at: true
       },
       orderBy: { name: 'asc' }
     });
@@ -58,17 +60,19 @@ class UserModel {
       });
     }
 
-  static async createChild({ parentId, name, pinHash }) {
+  static async createChild({ parentId, name, pinHash, dateOfBirth }) {
     return await prisma.users.create({
       data: {
         parent_id: parentId,
         role: 'child',
         name: name,
+        date_of_birth: dateOfBirth ? new Date(dateOfBirth) : null,
         pin: pinHash
       },
       select: {
         id: true,
         name: true,
+        date_of_birth: true,
         role: true,
         parent_id: true
       }

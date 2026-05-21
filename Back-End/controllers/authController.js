@@ -49,8 +49,8 @@ exports.listChildren = asyncHandler(async (req, res) => {
 });
 
 exports.createChild = asyncHandler(async (req, res) => {
-  const { name, pin } = req.body;
-  const child = await AuthService.createChild({ parentId: req.userId, name, pin });
+  const { name, pin, dateOfBirth } = req.body;
+  const child = await AuthService.createChild({ parentId: req.userId, name, pin, dateOfBirth });
 
   res.status(201).json(child);
 });
