@@ -13,7 +13,8 @@ exports.registerParent = asyncHandler(async (req, res) => {
   res.status(201).json({
     user: result.user,
     token: result.token,
-    emailPreviewUrl: result.emailPreviewUrl
+    emailPreviewUrl: result.emailPreviewUrl,
+    verificationUrl: result.verificationUrl
   });
 });
 
@@ -58,7 +59,8 @@ exports.loginChild = asyncHandler(async (req, res) => {
   const { childId, pin } = req.body;
   const result = await AuthService.loginChild(childId, pin);
 
-  res.json(result);
+  setRefreshTokenCookie(res, result.refreshToken);
+  res.json({ user: result.user, token: result.token });
 });
 
 exports.verifyEmail = asyncHandler(async (req, res) => {
@@ -67,4 +69,37 @@ exports.verifyEmail = asyncHandler(async (req, res) => {
 
   const user = await AuthService.verifyEmail(token);
   res.json({ message: 'Email verified', user });
+});
+
+exports.resendVerification = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  const result = await AuthService.resendVerification(email);
+
+  if (result.alreadyVerified) {
+    return res.json({ message: 'Email is already verified' });
+  }
+
+  res.json({
+    message: 'Verification email sent',
+    emailPreviewUrl: result.emailPreviewUrl,
+    verificationUrl: result.verificationUrl
+  });
+});
+
+exports.forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  const result = await AuthService.forgotPassword(email);
+
+  res.json({
+    message: 'If the email exists, password reset instructions have been sent',
+    emailPreviewUrl: result.emailPreviewUrl,
+    resetUrl: result.resetUrl
+  });
+});
+
+exports.resetPassword = asyncHandler(async (req, res) => {
+  const { token, password } = req.body;
+  const user = await AuthService.resetPassword(token, password);
+
+  res.json({ message: 'Password reset complete', user });
 });

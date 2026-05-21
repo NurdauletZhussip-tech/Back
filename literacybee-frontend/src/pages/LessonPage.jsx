@@ -18,7 +18,6 @@ export default function LessonPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user } = useSelector((s) => s.auth);
-  const childId = user?.id;
 
   const [lesson, setLesson] = useState(null);
   const [exercises, setExercises] = useState([]);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import api from '../api';
 import { useToast } from '../components/ToastProvider';
 
@@ -8,7 +8,7 @@ export default function AdminBadges() {
   const [form, setForm] = useState({ name: '', description: '', criteria_type: 'lessons_completed', criteria_value: 1, icon_url: '' });
   const [editing, setEditing] = useState(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const res = await api.get('/admin/badges');
       setBadges(res.data || []);
@@ -16,9 +16,9 @@ export default function AdminBadges() {
       addToast('Failed to load badges');
       console.error(err);
     }
-  };
+  }, [addToast]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -14,6 +14,9 @@ import PrivateRoute    from './components/PrivateRoute.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import AdminBadges from './pages/AdminBadges.jsx';
 import Badges from './pages/Badges.jsx';
+import VerifyEmail from './pages/VerifyEmail.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
 function App() {
   return (
     <Provider store={store}>
@@ -24,6 +27,9 @@ function App() {
           <Route path="/register"     element={<Register />} />
           <Route path="/login"        element={<Login />} />
           <Route path="/child-login"  element={<ChildLogin />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           <Route path="/parent/dashboard" element={
             <PrivateRoute allowedRoles={['parent']}><ParentDashboard /></PrivateRoute>

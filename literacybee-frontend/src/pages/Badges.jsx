@@ -59,7 +59,7 @@ export default function Badges() {
       }
     }
     loadAwarded();
-  }, [auth, selectedChild]);
+  }, [auth, selectedChild, addToast]);
 
   useEffect(() => {
     async function loadChildren() {
@@ -74,17 +74,6 @@ export default function Badges() {
     }
     loadChildren();
   }, [auth]);
-
-  // Simple Toast renderer
-  function Toast({ message, onClose }) {
-    useEffect(() => {
-      const t = setTimeout(onClose, 3000);
-      return () => clearTimeout(t);
-    }, [onClose]);
-    return (
-      <div style={{ position: 'fixed', right: 20, bottom: 20, background: '#333', color: '#fff', padding: 12, borderRadius: 6, marginTop: 8 }}>{message}</div>
-    );
-  }
 
   return (
     <div style={{ padding: 20 }}>
@@ -113,7 +102,6 @@ export default function Badges() {
           </div>
         ))}
       </div>
-      {toasts.map((m, i) => <Toast key={i} message={m} onClose={() => setToasts(t => t.filter((_, idx) => idx !== i))} />)}
     </div>
   );
 }

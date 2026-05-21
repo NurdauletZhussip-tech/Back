@@ -24,7 +24,7 @@ class AuthService {
   static generateEmailVerificationToken() {
     const token = crypto.randomBytes(32).toString('hex');
     const tokenHash = this.hashEmailVerificationToken(token);
-    const expiresInHours = parseInt(process.env.EMAIL_VERIFICATION_EXPIRES_HOURS, 10) || 24;
+    const expiresInHours = parseInt(process.env.EMAIL_VERIFICATION_EXPIRES_HOURS, 10) || 1;
     const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
 
     return { token, tokenHash, expiresAt };
@@ -32,6 +32,53 @@ class AuthService {
 
   static hashEmailVerificationToken(token) {
     return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
+  static generatePasswordResetToken() {
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = this.hashEmailVerificationToken(token);
+    const expiresInMinutes = parseInt(process.env.PASSWORD_RESET_EXPIRES_MINUTES, 10) || 30;
+    const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
+
+    return { token, tokenHash, expiresAt };
+  }
+
+  static async sendVerificationEmail(user, token) {
+    const verificationUrl = EmailService.buildVerificationUrl(token);
+    let emailPreviewUrl = null;
+
+    try {
+      const emailResult = await EmailService.sendEmailVerification({
+        email: user.email,
+        name: user.name,
+        token
+      });
+      emailPreviewUrl = emailResult.previewUrl;
+    } catch (err) {
+      console.error('Email verification send failed:', err.message);
+      console.log(`Email verification dev link: ${verificationUrl}`);
+    }
+
+    return { emailPreviewUrl, verificationUrl };
+  }
+
+  static async sendPasswordResetEmail(user, token) {
+    const resetUrl = EmailService.buildPasswordResetUrl(token);
+    let emailPreviewUrl = null;
+
+    try {
+      const emailResult = await EmailService.sendPasswordReset({
+        email: user.email,
+        name: user.name,
+        token
+      });
+      emailPreviewUrl = emailResult.previewUrl;
+    } catch (err) {
+      console.error('Password reset email send failed:', err.message);
+      console.log(`Password reset dev link: ${resetUrl}`);
+    }
+
+    return { emailPreviewUrl, resetUrl };
   }
 
   static async registerParent(email, password, name) {
@@ -48,15 +95,64 @@ class AuthService {
       tokenHash: verification.tokenHash,
       expiresAt: verification.expiresAt
     });
-    const emailResult = await EmailService.sendEmailVerification({
-      email: user.email,
-      name: user.name,
-      token: verification.token
-    });
+    const emailResult = await this.sendVerificationEmail(user, verification.token);
+
     return {
       user: { ...user, email_verified: false },
-      emailPreviewUrl: emailResult.previewUrl
+      emailPreviewUrl: emailResult.emailPreviewUrl,
+      verificationUrl: emailResult.verificationUrl
     };
+  }
+
+  static async resendVerification(email) {
+    const user = await UserModel.findByEmail(email);
+    if (!user || (user.role !== 'parent' && user.role !== 'admin')) {
+      return { sent: true };
+    }
+    if (user.email_verified) {
+      return { sent: false, alreadyVerified: true };
+    }
+
+    const verification = this.generateEmailVerificationToken();
+    await UserModel.setEmailVerificationToken({
+      userId: user.id,
+      tokenHash: verification.tokenHash,
+      expiresAt: verification.expiresAt
+    });
+
+    const emailResult = await this.sendVerificationEmail(user, verification.token);
+    return { sent: true, ...emailResult };
+  }
+
+  static async forgotPassword(email) {
+    const user = await UserModel.findByEmail(email);
+    if (!user || !user.password_hash || (user.role !== 'parent' && user.role !== 'admin')) {
+      return { sent: true };
+    }
+
+    const reset = this.generatePasswordResetToken();
+    await UserModel.setPasswordResetToken({
+      userId: user.id,
+      tokenHash: reset.tokenHash,
+      expiresAt: reset.expiresAt
+    });
+
+    const emailResult = await this.sendPasswordResetEmail(user, reset.token);
+    return { sent: true, ...emailResult };
+  }
+
+  static async resetPassword(token, password) {
+    const tokenHash = this.hashEmailVerificationToken(token);
+    const user = await UserModel.findByPasswordResetTokenHash(tokenHash);
+
+    if (!user) throw new Error('INVALID_PASSWORD_RESET_TOKEN');
+    if (new Date(user.password_reset_expires_at) < new Date()) {
+      throw new Error('PASSWORD_RESET_EXPIRED');
+    }
+
+    const saltRounds = parseInt(process.env.BCRYPT_ROUNDS, 10) || 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    return await UserModel.updatePassword(user.id, hashedPassword);
   }
 
   static async createChild({ parentId, name, pin }) {

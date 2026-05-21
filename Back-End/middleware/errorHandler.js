@@ -7,6 +7,8 @@ const ERROR_RESPONSES = {
   INVALID_CREDENTIALS: { status: 401, message: 'Invalid credentials' },
   INVALID_REFRESH: { status: 401, message: 'Invalid refresh token' },
   NOT_FOUND: { status: 404, message: 'Not found' },
+  INVALID_PASSWORD_RESET_TOKEN: { status: 400, message: 'Invalid password reset token' },
+  PASSWORD_RESET_EXPIRED: { status: 400, message: 'Password reset link has expired' },
   REFRESH_EXPIRED: { status: 401, message: 'Invalid refresh token' }
 };
 

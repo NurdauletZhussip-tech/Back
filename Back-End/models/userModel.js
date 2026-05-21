@@ -109,6 +109,39 @@ class UserModel {
       }
     });
   }
+
+  static async setPasswordResetToken({ userId, tokenHash, expiresAt }) {
+    return await prisma.users.update({
+      where: { id: userId },
+      data: {
+        password_reset_token_hash: tokenHash,
+        password_reset_expires_at: expiresAt
+      }
+    });
+  }
+
+  static async findByPasswordResetTokenHash(tokenHash) {
+    return await prisma.users.findUnique({
+      where: { password_reset_token_hash: tokenHash }
+    });
+  }
+
+  static async updatePassword(userId, passwordHash) {
+    return await prisma.users.update({
+      where: { id: userId },
+      data: {
+        password_hash: passwordHash,
+        password_reset_token_hash: null,
+        password_reset_expires_at: null
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        name: true
+      }
+    });
+  }
 }
 
 module.exports = UserModel;

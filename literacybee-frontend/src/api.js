@@ -23,12 +23,27 @@ api.interceptors.response.use(
     const originalRequest = error.config;
     if (!originalRequest) return Promise.reject(error);
 
-    if (error.response && error.response.status === 401 && !originalRequest._retry) {
+    const authRetryBlockedPaths = [
+      '/auth/login',
+      '/auth/child/login',
+      '/auth/register',
+      '/auth/refresh',
+      '/auth/resend-verification',
+      '/auth/forgot-password',
+      '/auth/reset-password',
+      '/auth/verify-email',
+      '/auth/logout'
+    ];
+    const shouldSkipRefresh = authRetryBlockedPaths.some((path) => originalRequest.url?.includes(path));
+
+    if (error.response && error.response.status === 401 && !originalRequest._retry && !shouldSkipRefresh) {
       originalRequest._retry = true;
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) return Promise.reject(error);
-        const resp = await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:3000/api'}/auth/refresh`, { refreshToken });
+        const resp = await axios.post(
+          `${process.env.REACT_APP_API_URL || 'http://localhost:3000/api'}/auth/refresh`,
+          {},
+          { withCredentials: true }
+        );
         const { accessToken } = resp.data;
         if (accessToken) {
           localStorage.setItem('token', accessToken);
@@ -37,6 +52,7 @@ api.interceptors.response.use(
           return api(originalRequest);
         }
       } catch (e) {
+        localStorage.removeItem('token');
         return Promise.reject(e);
       }
     }

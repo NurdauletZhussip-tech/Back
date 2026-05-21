@@ -18,9 +18,14 @@ class RefreshTokenModel {
   }
 
   static async revoke(token) {
-    return await prisma.refresh_tokens.delete({
-      where: { token: token }
-    });
+    try {
+      return await prisma.refresh_tokens.delete({
+        where: { token: token }
+      });
+    } catch (err) {
+      if (err.code === 'P2025') return null;
+      throw err;
+    }
   }
 }
 

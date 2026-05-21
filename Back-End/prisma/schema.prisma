@@ -49,6 +49,11 @@ model exercises {
 model users {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email         String?   @unique @db.VarChar(255)
+  email_verified Boolean  @default(false)
+  email_verification_token_hash String? @unique @db.VarChar(255)
+  email_verification_expires_at DateTime? @db.Timestamptz(6)
+  password_reset_token_hash String? @unique @db.VarChar(255)
+  password_reset_expires_at DateTime? @db.Timestamptz(6)
   password_hash String?   @db.VarChar(255)
   role          user_role
   parent_id     String?   @db.Uuid

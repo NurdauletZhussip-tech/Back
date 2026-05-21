@@ -38,11 +38,47 @@ export const loginChild = createAsyncThunk('auth/childLogin', async ({ childId, 
   }
 });
 
+export const resendVerification = createAsyncThunk('auth/resendVerification', async ({ email }, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/auth/resend-verification', { email });
+    return res.data;
+  } catch (error) {
+    return rejectWithValue(getApiError(error));
+  }
+});
+
+export const forgotPassword = createAsyncThunk('auth/forgotPassword', async ({ email }, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/auth/forgot-password', { email });
+    return res.data;
+  } catch (error) {
+    return rejectWithValue(getApiError(error));
+  }
+});
+
+export const resetPassword = createAsyncThunk('auth/resetPassword', async ({ token, password }, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/auth/reset-password', { token, password });
+    return res.data;
+  } catch (error) {
+    return rejectWithValue(getApiError(error));
+  }
+});
+
+export const logout = createAsyncThunk('auth/logout', async () => {
+  try {
+    await api.post('/auth/logout');
+  } catch {
+    // Local session must be cleared even if the refresh cookie is already gone.
+  }
+  return true;
+});
+
 const authSlice = createSlice({
   name: 'auth',
   initialState: { user: null, token: null, role: null, loading: false, error: null },
   reducers: {
-    logout: (state) => {
+    clearAuth: (state) => {
       state.user = null;
       state.token = null;
       state.role = null;
@@ -69,9 +105,15 @@ const authSlice = createSlice({
         state.token = action.payload.token;
         state.role = 'child';
         localStorage.setItem('token', action.payload.token);
+      })
+      .addCase(logout.fulfilled, (state) => {
+        state.user = null;
+        state.token = null;
+        state.role = null;
+        localStorage.removeItem('token');
       });
   },
 });
 
-export const { logout } = authSlice.actions;
+export const { clearAuth } = authSlice.actions;
 export default authSlice.reducer;

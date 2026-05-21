@@ -24,6 +24,25 @@ router.post('/login',
 
 router.get('/verify-email', AuthController.verifyEmail);
 
+router.post('/resend-verification',
+  body('email').isEmail().withMessage('invalid email'),
+  runValidation,
+  AuthController.resendVerification
+);
+
+router.post('/forgot-password',
+  body('email').isEmail().withMessage('invalid email'),
+  runValidation,
+  AuthController.forgotPassword
+);
+
+router.post('/reset-password',
+  body('token').notEmpty().withMessage('token required'),
+  body('password').isLength({ min: 6 }).withMessage('password too short'),
+  runValidation,
+  AuthController.resetPassword
+);
+
 router.get('/children', authenticate, requireRole('parent'), AuthController.listChildren);
 
 router.post('/children', authenticate, requireRole('parent'),
