@@ -1,38 +1,28 @@
 const BadgeService = require('../services/badgeService');
+const asyncHandler = require('../middleware/asyncHandler');
 
 class BadgeController {
-  static async getAll(req, res) {
-    try {
-      const badges = await BadgeService.listBadges();
-      res.json(badges);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  }
+  static getAll = asyncHandler(async (req, res) => {
+    const badges = await BadgeService.listBadges();
+    res.json(badges);
+  });
 
-  static async getForChild(req, res) {
-    try {
-      const { childId } = req.params;
-      const awarded = await BadgeService.getBadgesForChild(childId);
-      // Return just badge info and awarded metadata
-      const result = awarded.map(a => ({ awarded_at: a.awarded_at, badge: a.badges }));
-      res.json(result);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  }
+  static getForChild = asyncHandler(async (req, res) => {
+    const { childId } = req.params;
+    const awarded = await BadgeService.getBadgesForChild(childId);
+    const result = awarded.map((award) => ({
+      awarded_at: award.awarded_at,
+      badge: award.badges
+    }));
 
-  static async getAllWithStatus(req, res) {
-    try {
-      const { childId } = req.params;
-      const list = await BadgeService.listWithEarned(childId);
-      res.json(list);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  }
+    res.json(result);
+  });
+
+  static getAllWithStatus = asyncHandler(async (req, res) => {
+    const { childId } = req.params;
+    const list = await BadgeService.listWithEarned(childId);
+    res.json(list);
+  });
 }
 
 module.exports = BadgeController;
-
-

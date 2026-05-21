@@ -1,22 +1,41 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../api';
-export const loginAsChild = createAsyncThunk('auth/loginAsChild', async ({ childId, pin }) => {
-  const res = await api.post('/auth/child/login', { childId, pin });
-  return res.data;
+
+const getApiError = (error) => error.response?.data?.error || error.message || 'Request failed';
+
+export const loginAsChild = createAsyncThunk('auth/loginAsChild', async ({ childId, pin }, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/auth/child/login', { childId, pin });
+    return res.data;
+  } catch (error) {
+    return rejectWithValue(getApiError(error));
+  }
 });
-export const registerParent = createAsyncThunk('auth/register', async ({ email, password, name }) => {
-  const res = await api.post('/auth/register', { email, password, name });
-  return res.data;
+export const registerParent = createAsyncThunk('auth/register', async ({ email, password, name }, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/auth/register', { email, password, name });
+    return res.data;
+  } catch (error) {
+    return rejectWithValue(getApiError(error));
+  }
 });
 
-export const loginParent = createAsyncThunk('auth/login', async ({ email, password }) => {
-  const res = await api.post('/auth/login', { email, password });
-  return res.data;
+export const loginParent = createAsyncThunk('auth/login', async ({ email, password }, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/auth/login', { email, password });
+    return res.data;
+  } catch (error) {
+    return rejectWithValue(getApiError(error));
+  }
 });
 
-export const loginChild = createAsyncThunk('auth/childLogin', async ({ childId, pin }) => {
-  const res = await api.post('/auth/child/login', { childId, pin });
-  return res.data;
+export const loginChild = createAsyncThunk('auth/childLogin', async ({ childId, pin }, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/auth/child/login', { childId, pin });
+    return res.data;
+  } catch (error) {
+    return rejectWithValue(getApiError(error));
+  }
 });
 
 const authSlice = createSlice({
@@ -34,9 +53,9 @@ const authSlice = createSlice({
     builder
       .addCase(registerParent.fulfilled, (state, action) => {
         state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.role = 'parent';
-        localStorage.setItem('token', action.payload.token);
+        state.token = null;
+        state.role = null;
+        localStorage.removeItem('token');
       })
       .addCase(loginParent.fulfilled, (state, action) => {
         state.user = action.payload.user;

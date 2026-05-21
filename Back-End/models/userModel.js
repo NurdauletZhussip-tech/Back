@@ -14,6 +14,7 @@ class UserModel {
       select: {
         id: true,
         email: true,
+        email_verified: true,
         role: true,
         parent_id: true,
         name: true,
@@ -50,6 +51,7 @@ class UserModel {
         select: {
           id: true,
           email: true,
+          email_verified: true,
           role: true,
           name: true
         }
@@ -69,6 +71,41 @@ class UserModel {
         name: true,
         role: true,
         parent_id: true
+      }
+    });
+  }
+
+  static async setEmailVerificationToken({ userId, tokenHash, expiresAt }) {
+    return await prisma.users.update({
+      where: { id: userId },
+      data: {
+        email_verified: false,
+        email_verification_token_hash: tokenHash,
+        email_verification_expires_at: expiresAt
+      }
+    });
+  }
+
+  static async findByEmailVerificationTokenHash(tokenHash) {
+    return await prisma.users.findUnique({
+      where: { email_verification_token_hash: tokenHash }
+    });
+  }
+
+  static async markEmailVerified(userId) {
+    return await prisma.users.update({
+      where: { id: userId },
+      data: {
+        email_verified: true,
+        email_verification_token_hash: null,
+        email_verification_expires_at: null
+      },
+      select: {
+        id: true,
+        email: true,
+        email_verified: true,
+        role: true,
+        name: true
       }
     });
   }
