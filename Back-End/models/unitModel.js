@@ -1,4 +1,5 @@
 const prisma = require('../prismaClient');
+const ERROR_CODES = require('../constants/errorCodes');
 
 class UnitModel {
   static async create(data) {
@@ -52,7 +53,7 @@ class UnitModel {
         data
       });
     } catch (err) {
-      if (err.code === 'P2025') throw new Error('NOT_FOUND');
+      if (err.code === 'P2025') throw new Error(ERROR_CODES.NOT_FOUND);
       throw err;
     }
   }
@@ -63,7 +64,7 @@ class UnitModel {
         where: { id }
       });
     } catch (err) {
-      if (err.code === 'P2025') throw new Error('NOT_FOUND');
+      if (err.code === 'P2025') throw new Error(ERROR_CODES.NOT_FOUND);
       throw err;
     }
   }

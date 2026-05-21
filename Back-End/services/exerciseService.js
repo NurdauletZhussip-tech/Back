@@ -1,4 +1,5 @@
 const ExerciseModel = require('../models/exerciseModel');
+const ERROR_CODES = require('../constants/errorCodes');
 
 class ExerciseService {
   static async createExercise(lessonId, data) {
@@ -31,7 +32,7 @@ class ExerciseService {
 
   static async getExerciseById(id) {
     const exercise = await ExerciseModel.findById(id);
-    if (!exercise) throw new Error('NOT_FOUND');
+    if (!exercise) throw new Error(ERROR_CODES.NOT_FOUND);
     return exercise;
   }
 }

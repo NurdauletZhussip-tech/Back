@@ -1,4 +1,5 @@
 const LessonModel = require('../models/lessonModel');
+const { buildPaginationMeta, getPagination } = require('../utils/pagination');
 
 class AdminService {
   static async createLesson(data) {
@@ -17,23 +18,16 @@ class AdminService {
   }
 
   static async getLessonsPaginated(query) {
-    const page = parseInt(query.page) || 1;
-    const limit = parseInt(query.limit) || 50;
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = getPagination(query, 50);
 
     const [lessons, totalCount] = await Promise.all([
       LessonModel.findAll(skip, limit),
-      LessonModel.countPublished()
+      LessonModel.countAll()
     ]);
 
     return {
       data: lessons,
-      meta: {
-        totalItems: totalCount,
-        currentPage: page,
-        totalPages: Math.ceil(totalCount / limit),
-        itemsPerPage: limit
-      }
+      meta: buildPaginationMeta(totalCount, page, limit)
     };
   }
 

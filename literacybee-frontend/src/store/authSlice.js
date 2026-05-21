@@ -23,14 +23,6 @@ function getStoredAuth() {
   }
 }
 
-export const loginAsChild = createAsyncThunk('auth/loginAsChild', async ({ childId, pin }, { rejectWithValue }) => {
-  try {
-    const res = await api.post('/auth/child/login', { childId, pin });
-    return res.data;
-  } catch (error) {
-    return rejectWithValue(getApiError(error));
-  }
-});
 export const registerParent = createAsyncThunk('auth/register', async ({ email, password, name }, { rejectWithValue }) => {
   try {
     const res = await api.post('/auth/register', { email, password, name });

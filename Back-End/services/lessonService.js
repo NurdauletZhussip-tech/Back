@@ -1,17 +1,15 @@
 const LessonModel = require('../models/lessonModel');
 const ExerciseModel = require('../models/exerciseModel');
-const ProgressModel = require('../models/progressModel');
-const AttemptModel = require('../models/attemptModel');
 const GamificationService = require('./gamificationService');
 const AdaptiveDifficultyService = require('./adaptiveDifficultyService');
 const LeaderboardService = require('./leaderboardService');
 const prisma = require('../prismaClient');
+const ERROR_CODES = require('../constants/errorCodes');
+const { buildPaginationMeta, getPagination } = require('../utils/pagination');
 
 class LessonService {
   static async getAllLessonsPaginated(query) {
-    const page = parseInt(query.page) || 1;
-    const limit = parseInt(query.limit) || 20;
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = getPagination(query, 20);
 
     const [data, total] = await Promise.all([
       LessonModel.findPublished(skip, limit),
@@ -20,19 +18,12 @@ class LessonService {
 
     return {
       data,
-      meta: {
-        totalItems: total,
-        currentPage: page,
-        totalPages: Math.ceil(total / limit),
-        itemsPerPage: limit
-      }
+      meta: buildPaginationMeta(total, page, limit)
     };
   }
 
   static async getExercisesPaginated(lessonId, query) {
-    const page = parseInt(query.page) || 1;
-    const limit = parseInt(query.limit) || 10;
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = getPagination(query, 10);
 
     const [exercises, total] = await Promise.all([
       ExerciseModel.findByLessonIdPaginated(lessonId, skip, limit),
@@ -41,31 +32,19 @@ class LessonService {
 
     return {
       data: exercises,
-      meta: {
-        totalItems: total,
-        currentPage: page,
-        totalPages: Math.ceil(total / limit),
-        itemsPerPage: limit
-      }
+      meta: buildPaginationMeta(total, page, limit)
     };
   }
 
   static async getAdaptiveExercisesPaginated(lessonId, childId, query) {
-    const page = parseInt(query.page) || 1;
-    const limit = parseInt(query.limit) || 10;
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = getPagination(query, 10);
 
     const result = await AdaptiveDifficultyService.getAdaptiveExercises(lessonId, childId, { skip, take: limit });
 
     return {
       data: result.data,
       recommendedDifficulty: result.recommendedDifficulty,
-      meta: {
-        totalItems: result.total,
-        currentPage: page,
-        totalPages: Math.ceil(result.total / limit),
-        itemsPerPage: limit
-      }
+      meta: buildPaginationMeta(result.total, page, limit)
     };
   }
 
@@ -73,7 +52,7 @@ class LessonService {
     // First, perform DB changes inside a transaction
     const txResult = await prisma.$transaction(async (tx) => {
       const exercise = await tx.exercises.findUnique({ where: { id: exerciseId } });
-      if (!exercise) throw new Error('EXERCISE_NOT_FOUND');
+      if (!exercise) throw new Error(ERROR_CODES.EXERCISE_NOT_FOUND);
 
       const previousCorrectAttempt = await tx.exercise_attempts.findFirst({
         where: { child_id: childId, exercise_id: exerciseId, correct: true }
@@ -127,7 +106,7 @@ class LessonService {
 
   static async getLessonById(lessonId) {
     const lesson = await LessonModel.findByIdWithExercises(lessonId);
-    if (!lesson) throw new Error('NOT_FOUND');
+    if (!lesson) throw new Error(ERROR_CODES.NOT_FOUND);
     return lesson;
   }
 

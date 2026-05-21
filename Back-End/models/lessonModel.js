@@ -1,8 +1,11 @@
 const prisma = require('../prismaClient');
+const ERROR_CODES = require('../constants/errorCodes');
 
 class LessonModel {
-  static async findAll() {
+  static async findAll(skip, take) {
     return await prisma.lessons.findMany({
+      skip,
+      take,
       orderBy: { order_index: 'asc' }
     });
   }
@@ -43,6 +46,10 @@ class LessonModel {
     return await prisma.lessons.count({ where: { is_published: true } });
   }
 
+  static async countAll() {
+    return await prisma.lessons.count();
+  }
+
   static async create(data) {
     return await prisma.lessons.create({
       data
@@ -56,7 +63,7 @@ class LessonModel {
         data
       });
     } catch (err) {
-      if (err.code === 'P2025') throw new Error('NOT_FOUND');
+      if (err.code === 'P2025') throw new Error(ERROR_CODES.NOT_FOUND);
       throw err;
     }
   }
@@ -67,7 +74,7 @@ class LessonModel {
         where: { id }
       });
     } catch (err) {
-      if (err.code === 'P2025') throw new Error('NOT_FOUND');
+      if (err.code === 'P2025') throw new Error(ERROR_CODES.NOT_FOUND);
       throw err;
     }
   }

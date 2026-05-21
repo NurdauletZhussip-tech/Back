@@ -1,4 +1,5 @@
 const UnitModel = require('../models/unitModel');
+const ERROR_CODES = require('../constants/errorCodes');
 
 class UnitService {
   static async createUnit(data) {
@@ -19,7 +20,7 @@ class UnitService {
 
   static async getUnitById(id) {
     const unit = await UnitModel.findByIdWithLessons(id);
-    if (!unit) throw new Error('NOT_FOUND');
+    if (!unit) throw new Error(ERROR_CODES.NOT_FOUND);
     return unit;
   }
 

@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const UserModel = require('../models/userModel');
+const ERROR_CODES = require('../constants/errorCodes');
 
 exports.authenticate = async (req, res, next) => {
   const auth = req.headers.authorization;
@@ -11,7 +12,7 @@ exports.authenticate = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await UserModel.findById(decoded.userId);
-    if (!user) throw new Error('USER_NOT_FOUND');
+    if (!user) throw new Error(ERROR_CODES.USER_NOT_FOUND);
     
     req.user = user;
     req.userId = decoded.userId;

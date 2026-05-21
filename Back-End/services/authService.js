@@ -4,6 +4,7 @@ const UserModel = require('../models/userModel');
 const RefreshTokenModel = require('../models/refreshTokenModel');
 const crypto = require('crypto');
 const EmailService = require('./emailService');
+const ERROR_CODES = require('../constants/errorCodes');
 
 class AuthService {
   static generateToken(userId, role) {
@@ -83,7 +84,7 @@ class AuthService {
 
   static async registerParent(email, password, name) {
     const existing = await UserModel.findByEmail(email);
-    if (existing) throw new Error('EMAIL_EXISTS');
+    if (existing) throw new Error(ERROR_CODES.EMAIL_EXISTS);
 
     const saltRounds = parseInt(process.env.BCRYPT_ROUNDS, 10) || 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -145,9 +146,9 @@ class AuthService {
     const tokenHash = this.hashEmailVerificationToken(token);
     const user = await UserModel.findByPasswordResetTokenHash(tokenHash);
 
-    if (!user) throw new Error('INVALID_PASSWORD_RESET_TOKEN');
+    if (!user) throw new Error(ERROR_CODES.INVALID_PASSWORD_RESET_TOKEN);
     if (new Date(user.password_reset_expires_at) < new Date()) {
-      throw new Error('PASSWORD_RESET_EXPIRED');
+      throw new Error(ERROR_CODES.PASSWORD_RESET_EXPIRED);
     }
 
     const saltRounds = parseInt(process.env.BCRYPT_ROUNDS, 10) || 10;
@@ -169,17 +170,17 @@ class AuthService {
   static async loginParent(email, password) {
     const user = await UserModel.findByEmail(email);
     if (!user || (user.role !== 'parent' && user.role !== 'admin')) {
-      throw new Error('INVALID_CREDENTIALS');
+      throw new Error(ERROR_CODES.INVALID_CREDENTIALS);
     }
     if (!user.password_hash) {
-      throw new Error('INVALID_CREDENTIALS');
+      throw new Error(ERROR_CODES.INVALID_CREDENTIALS);
     }
     if (!user.email_verified) {
-      throw new Error('EMAIL_NOT_VERIFIED');
+      throw new Error(ERROR_CODES.EMAIL_NOT_VERIFIED);
     }
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) {
-      throw new Error('INVALID_CREDENTIALS');
+      throw new Error(ERROR_CODES.INVALID_CREDENTIALS);
     }
     const tokens = await this.generateTokens(user);
     const {
@@ -196,9 +197,9 @@ class AuthService {
     const tokenHash = this.hashEmailVerificationToken(token);
     const user = await UserModel.findByEmailVerificationTokenHash(tokenHash);
 
-    if (!user) throw new Error('INVALID_EMAIL_VERIFICATION_TOKEN');
+    if (!user) throw new Error(ERROR_CODES.INVALID_EMAIL_VERIFICATION_TOKEN);
     if (new Date(user.email_verification_expires_at) < new Date()) {
-      throw new Error('EMAIL_VERIFICATION_EXPIRED');
+      throw new Error(ERROR_CODES.EMAIL_VERIFICATION_EXPIRED);
     }
 
     return await UserModel.markEmailVerified(user.id);
@@ -209,11 +210,11 @@ class AuthService {
     const storedHash = child?.pin_hash || child?.pin;
 
     if (!child || child.role !== 'child' || !storedHash) {
-      throw new Error('INVALID_CREDENTIALS');
+      throw new Error(ERROR_CODES.INVALID_CREDENTIALS);
     }
 
     const valid = await bcrypt.compare(pin, storedHash);
-    if (!valid) throw new Error('INVALID_CREDENTIALS');
+    if (!valid) throw new Error(ERROR_CODES.INVALID_CREDENTIALS);
 
     const tokens = await this.generateTokens(child);
     const { pin_hash, pin: _, ...safeChild } = child;
@@ -222,13 +223,13 @@ class AuthService {
 
   static async refreshAccessToken(refreshToken) {
     const record = await RefreshTokenModel.findByToken(refreshToken);
-    if (!record) throw new Error('INVALID_REFRESH');
+    if (!record) throw new Error(ERROR_CODES.INVALID_REFRESH);
     if (new Date(record.expires_at) < new Date()) {
       await RefreshTokenModel.revoke(refreshToken);
-      throw new Error('REFRESH_EXPIRED');
+      throw new Error(ERROR_CODES.REFRESH_EXPIRED);
     }
     const user = await UserModel.findById(record.user_id);
-    if (!user) throw new Error('INVALID_REFRESH');
+    if (!user) throw new Error(ERROR_CODES.INVALID_REFRESH);
     const accessToken = this.generateToken(user.id, user.role);
     return { accessToken };
   }

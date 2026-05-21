@@ -1,12 +1,9 @@
 const AdminService = require('../services/adminService');
-const AuditLogService = require('../services/auditLogService');
 const LessonModel = require('../models/lessonModel');
 const BadgeService = require('../services/badgeService');
 const asyncHandler = require('../middleware/asyncHandler');
-
-async function logAdminAction({ userId, action, entity, entityId, before = null, after = null }) {
-  await AuditLogService.log({ userId, action, entity, entityId, before, after });
-}
+const ERROR_CODES = require('../constants/errorCodes');
+const { logAdminAction } = require('../utils/auditLogger');
 
 class AdminController {
   static getLessons = asyncHandler(async (req, res) => {
@@ -80,14 +77,14 @@ class AdminController {
 
   static getBadge = asyncHandler(async (req, res) => {
     const badge = await BadgeService.getBadgeById(req.params.id);
-    if (!badge) throw new Error('NOT_FOUND');
+    if (!badge) throw new Error(ERROR_CODES.NOT_FOUND);
 
     res.json(badge);
   });
 
   static updateBadge = asyncHandler(async (req, res) => {
     const before = await BadgeService.getBadgeById(req.params.id);
-    if (!before) throw new Error('NOT_FOUND');
+    if (!before) throw new Error(ERROR_CODES.NOT_FOUND);
 
     const updated = await BadgeService.updateBadge(req.params.id, req.body);
 
@@ -105,7 +102,7 @@ class AdminController {
 
   static deleteBadge = asyncHandler(async (req, res) => {
     const before = await BadgeService.getBadgeById(req.params.id);
-    if (!before) throw new Error('NOT_FOUND');
+    if (!before) throw new Error(ERROR_CODES.NOT_FOUND);
 
     await BadgeService.deleteBadge(req.params.id);
 

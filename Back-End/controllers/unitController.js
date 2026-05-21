@@ -1,11 +1,11 @@
 const UnitService = require('../services/unitService');
-const AuditLogService = require('../services/auditLogService');
 const asyncHandler = require('../middleware/asyncHandler');
+const { logAdminAction } = require('../utils/auditLogger');
 
 class UnitController {
   static create = asyncHandler(async (req, res) => {
     const unit = await UnitService.createUnit(req.body);
-    await AuditLogService.log({
+    await logAdminAction({
       userId: req.userId,
       action: 'CREATE_UNIT',
       entity: 'unit',
@@ -23,7 +23,7 @@ class UnitController {
   static update = asyncHandler(async (req, res) => {
     const before = await UnitService.getUnitById(req.params.id);
     const unit = await UnitService.updateUnit(req.params.id, req.body);
-    await AuditLogService.log({
+    await logAdminAction({
       userId: req.userId,
       action: 'UPDATE_UNIT',
       entity: 'unit',
@@ -37,7 +37,7 @@ class UnitController {
   static delete = asyncHandler(async (req, res) => {
     const before = await UnitService.getUnitById(req.params.id);
     await UnitService.deleteUnit(req.params.id);
-    await AuditLogService.log({
+    await logAdminAction({
       userId: req.userId,
       action: 'DELETE_UNIT',
       entity: 'unit',
