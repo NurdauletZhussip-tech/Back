@@ -2,6 +2,7 @@ const prisma = require('../prismaClient');
 const CacheService = require('./cacheService');
 
 const LEADERBOARD_TTL_SECONDS = parseInt(process.env.LEADERBOARD_CACHE_TTL_SECONDS, 10) || 300;
+const LEADERBOARD_CACHE_VERSION = 'xp-v2';
 
 function ageGroupToBirthDateRange(ageGroup) {
   const match = String(ageGroup || '').match(/^(\d+)-(\d+)$/);
@@ -19,7 +20,7 @@ function ageGroupToBirthDateRange(ageGroup) {
 class LeaderboardService {
   static async getByAgeGroup(ageGroup = 'all', limit = 10) {
     const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 50);
-    const cacheKey = `leaderboard:${ageGroup}:${safeLimit}`;
+    const cacheKey = `leaderboard:${LEADERBOARD_CACHE_VERSION}:${ageGroup}:${safeLimit}`;
     const cached = await CacheService.getJson(cacheKey);
     if (cached) return { ...cached, cached: true };
 
@@ -34,12 +35,33 @@ class LeaderboardService {
     });
 
     const childIds = children.map(child => child.id);
-    const xpRows = childIds.length === 0 ? [] : await prisma.exercise_attempts.groupBy({
-      by: ['child_id'],
-      where: { child_id: { in: childIds } },
-      _sum: { xp_earned: true }
-    });
-    const xpByChild = new Map(xpRows.map(row => [row.child_id, row._sum.xp_earned || 0]));
+    const [attemptXpRows, completedLessons] = childIds.length === 0
+      ? [[], []]
+      : await Promise.all([
+          prisma.exercise_attempts.groupBy({
+            by: ['child_id'],
+            where: { child_id: { in: childIds } },
+            _sum: { xp_earned: true }
+          }),
+          prisma.progress.findMany({
+            where: {
+              child_id: { in: childIds },
+              completed: true
+            },
+            select: {
+              child_id: true,
+              lessons: {
+                select: { xp_reward: true }
+              }
+            }
+          })
+        ]);
+
+    const xpByChild = new Map(attemptXpRows.map(row => [row.child_id, row._sum.xp_earned || 0]));
+    for (const completedLesson of completedLessons) {
+      const lessonXp = completedLesson.lessons?.xp_reward || 0;
+      xpByChild.set(completedLesson.child_id, (xpByChild.get(completedLesson.child_id) || 0) + lessonXp);
+    }
 
     const entries = children
       .map(child => ({

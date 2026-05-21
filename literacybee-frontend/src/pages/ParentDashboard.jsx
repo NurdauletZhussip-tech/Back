@@ -59,6 +59,12 @@ export default function ParentDashboard() {
           <button className="logout-btn" onClick={() => dispatch(logout())}>Выйти</button>
         </div>
 
+        <div className="parent-actions-row">
+          <Link to="/leaderboard" className="parent-leaderboard-link">
+            Лидерборд по XP
+          </Link>
+        </div>
+
         {/* Create child */}
         <div className="parent-card">
           <div className="parent-card-title">➕ Создать ребёнка</div>

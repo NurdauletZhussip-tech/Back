@@ -17,6 +17,7 @@ import Badges from './pages/Badges.jsx';
 import VerifyEmail from './pages/VerifyEmail.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
+import Leaderboard from './pages/Leaderboard.jsx';
 function App() {
   return (
     <Provider store={store}>
@@ -55,6 +56,9 @@ function App() {
             </PrivateRoute>
           } />
           <Route path="/badges" element={<Badges />} />
+          <Route path="/leaderboard" element={
+            <PrivateRoute allowedRoles={['parent', 'child', 'admin']}><Leaderboard /></PrivateRoute>
+          } />
         </Routes>
       </BrowserRouter>
       </ToastProvider>

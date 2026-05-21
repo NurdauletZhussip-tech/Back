@@ -95,6 +95,7 @@ export default function ChildDashboard() {
             <div className="stat-chip">⚡ XP: <b>{dashboard.totalXp || 0}</b></div>
             <div className="stat-chip">🔥 Серия: <b>{dashboard.currentStreak || 0} дней</b></div>
             <div className="stat-chip">🏆 Уроков: <b>{dashboard.lessonsCompleted || 0}</b></div>
+            <Link className="stat-chip stat-chip-link" to="/leaderboard">Лидерборд</Link>
           </div>
         )}
 
