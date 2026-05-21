@@ -1,11 +1,11 @@
-// pages/ChildDashboard.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { logout } from '../store/authSlice';
 import { Link } from 'react-router-dom';
+import { FaArrowRight, FaBolt, FaBookOpen, FaFire, FaTrophy } from 'react-icons/fa';
+import AppNav from '../components/AppNav';
 import api from '../api';
 
-const ICONS = ['📚','🔤','📖','🌟','🎯','🏆','🖼️','✏️','🎨','🔡'];
+const ICONS = ['📚', '🔤', '📖', '⭐', '🎯', '🏆', '🖼️', '✏️', '🎨', '🔡'];
 
 export default function ChildDashboard() {
   const dispatch = useDispatch();
@@ -14,38 +14,51 @@ export default function ChildDashboard() {
   const childId = user?.id;
 
   const [dashboard, setDashboard] = useState(null);
+  const [leaders, setLeaders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [stars] = useState(() =>
     Array.from({ length: 50 }, (_, i) => ({
-      id: i, top: Math.random()*100, left: Math.random()*100,
-      size: 1+Math.random()*2.5, dur: 2+Math.random()*4, delay: Math.random()*5,
+      id: i,
+      top: Math.random() * 100,
+      left: Math.random() * 100,
+      size: 1 + Math.random() * 2.5,
+      dur: 2 + Math.random() * 4,
+      delay: Math.random() * 5
     }))
   );
 
-  // Загрузка данных
   useEffect(() => {
     const loadData = async () => {
       try {
-        const res = await api.get('/lessons/all');
+        setLoading(true);
+        const [lessonsRes, leaderboardRes] = await Promise.all([
+          api.get('/lessons/all'),
+          api.get('/leaderboard', { params: { ageGroup: 'all', limit: 3 } })
+        ]);
+
         dispatch({
           type: 'lesson/fetchLessons/fulfilled',
-          payload: { data: res.data || res }
+          payload: { data: lessonsRes.data || lessonsRes }
         });
+
+        setLeaders(leaderboardRes.data?.entries || []);
 
         if (childId) {
           const dashRes = await api.get(`/lessons/dashboard/${childId}`);
           setDashboard(dashRes.data);
         }
       } catch (err) {
-        console.error('Ошибка загрузки данных:', err);
+        console.error('Failed to load dashboard data:', err);
+      } finally {
+        setLoading(false);
       }
     };
 
     loadData();
   }, [dispatch, childId]);
 
-  // Группировка по юнитам
-  const groupedLessons = React.useMemo(() => {
+  const groupedLessons = useMemo(() => {
     if (!lessons || lessons.length === 0) return [];
 
     const groups = lessons.reduce((acc, lesson) => {
@@ -53,11 +66,7 @@ export default function ChildDashboard() {
       const unitTitle = lesson.units?.title || 'Все уроки';
 
       if (!acc[unitId]) {
-        acc[unitId] = { 
-          unitId, 
-          unitTitle, 
-          lessons: [] 
-        };
+        acc[unitId] = { unitId, unitTitle, lessons: [] };
       }
       acc[unitId].lessons.push(lesson);
       return acc;
@@ -70,62 +79,120 @@ export default function ChildDashboard() {
     });
   }, [lessons]);
 
+  const nextLesson = useMemo(() => {
+    return groupedLessons.flatMap(group => group.lessons)[0];
+  }, [groupedLessons]);
+
   return (
     <div className="space-bg">
       <div className="stars-bg">
         {stars.map(s => (
-          <div key={s.id} className="star-dot" style={{
-            top: `${s.top}%`, left: `${s.left}%`, width: s.size, height: s.size,
-            animationDuration: `${s.dur}s`, animationDelay: `${s.delay}s`,
-          }} />
+          <div
+            key={s.id}
+            className="star-dot"
+            style={{
+              top: `${s.top}%`,
+              left: `${s.left}%`,
+              width: s.size,
+              height: s.size,
+              animationDuration: `${s.dur}s`,
+              animationDelay: `${s.delay}s`
+            }}
+          />
         ))}
       </div>
 
-      <div className="z1 space-max">
-        <div className="dashboard-header">
-          <div>
-            <div className="dashboard-greeting">Привет, {user?.name}! 👋</div>
-            <div className="dashboard-sub">Твои уроки и достижения</div>
-          </div>
-          <button className="logout-btn" onClick={() => dispatch(logout())}>Выйти</button>
-        </div>
+      <div className="z1 dashboard-shell">
+        <AppNav />
 
-        {dashboard && (
-          <div className="stats-row">
-            <div className="stat-chip">⚡ XP: <b>{dashboard.totalXp || 0}</b></div>
-            <div className="stat-chip">🔥 Серия: <b>{dashboard.currentStreak || 0} дней</b></div>
-            <div className="stat-chip">🏆 Уроков: <b>{dashboard.lessonsCompleted || 0}</b></div>
-            <Link className="stat-chip stat-chip-link" to="/leaderboard">Лидерборд</Link>
+        <section className="child-hero">
+          <div className="child-hero-copy">
+            <div className="eyebrow">Сегодняшняя практика</div>
+            <h1>Привет, {user?.name || 'ученик'}!</h1>
+            <p>Продолжай читать, зарабатывай XP и поднимайся в лидерборде.</p>
+            <div className="hero-actions">
+              {nextLesson && (
+                <Link to={`/child/lesson/${nextLesson.id}`} className="hero-primary">
+                  <FaBookOpen /> Начать урок <FaArrowRight />
+                </Link>
+              )}
+              <Link to="/leaderboard" className="hero-secondary">
+                <FaTrophy /> Рейтинг
+              </Link>
+            </div>
           </div>
-        )}
 
-        {groupedLessons.length === 0 ? (
-          <div className="empty-state">😕 Уроков пока нет</div>
+          <div className="mission-panel">
+            <div className="mission-label">Следующий урок</div>
+            <div className="mission-title">{nextLesson?.title || 'Уроки скоро появятся'}</div>
+            <div className="mission-text">{nextLesson?.description || 'Администратор еще не добавил материалы.'}</div>
+            <div className="mission-xp"><FaBolt /> {nextLesson?.xp_reward || 0} XP</div>
+          </div>
+        </section>
+
+        <section className="dashboard-grid">
+          <div className="metric-card">
+            <FaBolt />
+            <span>{dashboard?.totalXp || 0}</span>
+            <p>Всего XP</p>
+          </div>
+          <div className="metric-card">
+            <FaFire />
+            <span>{dashboard?.currentStreak || 0}</span>
+            <p>Дней подряд</p>
+          </div>
+          <div className="metric-card">
+            <FaTrophy />
+            <span>{dashboard?.lessonsCompleted || 0}</span>
+            <p>Уроков завершено</p>
+          </div>
+        </section>
+
+        <section className="leader-preview">
+          <div className="section-head">
+            <div>
+              <h2>Топ по XP</h2>
+              <p>Кто сегодня впереди</p>
+            </div>
+            <Link to="/leaderboard">Открыть все</Link>
+          </div>
+          <div className="leader-preview-list">
+            {leaders.length === 0 ? (
+              <div className="empty-state compact">Рейтинг пока пуст</div>
+            ) : (
+              leaders.map(leader => (
+                <div key={leader.childId} className="leader-preview-row">
+                  <span>#{leader.rank}</span>
+                  <strong>{leader.name}</strong>
+                  <em>{leader.totalXp} XP</em>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        {loading ? (
+          <div className="leaderboard-state">Загружаем уроки...</div>
+        ) : groupedLessons.length === 0 ? (
+          <div className="empty-state">Уроков пока нет</div>
         ) : (
           groupedLessons.map((group) => (
-            <div key={group.unitId} className="mb-12">
-              
-              {/* ✅ ИЗМЕНЕННЫЙ ТЕКСТ */}
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3 
-              bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl shadow-lg w-fit">
-                📚 {group.unitTitle}
-                <span className="text-sm font-normal text-gray-600">
-                  ({group.lessons.length})
-                </span>
-              </h2>
+            <section key={group.unitId} className="lesson-section">
+              <div className="section-head">
+                <div>
+                  <h2>{group.unitTitle}</h2>
+                  <p>{group.lessons.length} уроков</p>
+                </div>
+              </div>
 
               <div className="lessons-grid">
                 {group.lessons.map((lesson, idx) => (
-                  <Link 
-                    key={lesson.id} 
-                    to={`/child/lesson/${lesson.id}`} 
-                    className="lesson-card"
-                  >
+                  <Link key={lesson.id} to={`/child/lesson/${lesson.id}`} className="lesson-card">
                     <div className="lc-icon">{ICONS[idx % ICONS.length]}</div>
                     <div className="lc-title">{lesson.title}</div>
                     {lesson.description && <div className="lc-desc">{lesson.description}</div>}
                     <div className="lc-footer">
-                      <span className="xp-badge">⚡ {lesson.xp_reward || 50} XP</span>
+                      <span className="xp-badge"><FaBolt /> {lesson.xp_reward || 50} XP</span>
                       <span className="go-arrow">→</span>
                     </div>
                     <div className="prog-bar">
@@ -134,7 +201,7 @@ export default function ChildDashboard() {
                   </Link>
                 ))}
               </div>
-            </div>
+            </section>
           ))
         )}
       </div>

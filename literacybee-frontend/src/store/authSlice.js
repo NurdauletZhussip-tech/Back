@@ -3,6 +3,26 @@ import api from '../api';
 
 const getApiError = (error) => error.response?.data?.error || error.message || 'Request failed';
 
+function getStoredAuth() {
+  const token = localStorage.getItem('token');
+  if (!token) return { user: null, token: null, role: null };
+
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return {
+      user: {
+        id: payload.userId,
+        role: payload.role
+      },
+      token,
+      role: payload.role
+    };
+  } catch {
+    localStorage.removeItem('token');
+    return { user: null, token: null, role: null };
+  }
+}
+
 export const loginAsChild = createAsyncThunk('auth/loginAsChild', async ({ childId, pin }, { rejectWithValue }) => {
   try {
     const res = await api.post('/auth/child/login', { childId, pin });
@@ -76,7 +96,7 @@ export const logout = createAsyncThunk('auth/logout', async () => {
 
 const authSlice = createSlice({
   name: 'auth',
-  initialState: { user: null, token: null, role: null, loading: false, error: null },
+  initialState: { ...getStoredAuth(), loading: false, error: null },
   reducers: {
     clearAuth: (state) => {
       state.user = null;

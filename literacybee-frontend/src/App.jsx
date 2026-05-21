@@ -55,7 +55,9 @@ function App() {
               <AdminBadges />
             </PrivateRoute>
           } />
-          <Route path="/badges" element={<Badges />} />
+          <Route path="/badges" element={
+            <PrivateRoute allowedRoles={['parent', 'child', 'admin']}><Badges /></PrivateRoute>
+          } />
           <Route path="/leaderboard" element={
             <PrivateRoute allowedRoles={['parent', 'child', 'admin']}><Leaderboard /></PrivateRoute>
           } />
